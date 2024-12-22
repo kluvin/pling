@@ -1,5 +1,6 @@
 defmodule PlingWeb.Router do
   use PlingWeb, :router
+  import Phoenix.LiveView.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -17,8 +18,28 @@ defmodule PlingWeb.Router do
   scope "/", PlingWeb do
     pipe_through :browser
 
+    get "/login", LoginController, :login
+    get "/logout", LoginController, :logout
+
+    # Protect these routes with authentication
+    pipe_through :require_login
     live "/", HomeLive
-    live "/session/:code", SessionLive
+    live "/session/:room_code", SessionLive
+  end
+
+  # Add authentication pipeline
+  pipeline :require_login do
+    plug :ensure_authenticated
+  end
+
+  defp ensure_authenticated(conn, _opts) do
+    if get_session(conn, :user_id) do
+      conn
+    else
+      conn
+      |> redirect(to: "/login")
+      |> halt()
+    end
   end
 
   # Other scopes may use custom stacks.

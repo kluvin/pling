@@ -9,7 +9,7 @@ defmodule PlingWeb.PageController do
 
   def create_room(conn, _params) do
     room_code = generate_room_code()
-    redirect(conn, to: ~p"/rooms/#{room_code}")
+    redirect(conn, to: "/session/#{room_code}")
   end
 
   # Helper function to generate room code

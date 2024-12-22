@@ -3,7 +3,11 @@ defmodule PlingWeb.SessionLive do
   import PlingWeb.Components.PlaylistSelector
   alias Pling.Playlists
   alias Phoenix.LiveView.JS
+  alias PlingWeb.Presence
   require Logger
+
+  # Add room-specific topic
+  def topic(room_code), do: "pling:room:#{room_code}"
 
   @initial_state %{
     red_count: 0,
@@ -15,7 +19,21 @@ defmodule PlingWeb.SessionLive do
     default_decade: "90s"
   }
 
-  def mount(_params, _session, socket) do
+  @impl true
+  def mount(%{"room_code" => room_code}, %{"user_id" => user_id}, socket) do
+    if connected?(socket) do
+      topic = topic(room_code)
+
+      # Track user in this specific room
+      Presence.track(self(), topic, user_id, %{
+        user_id: user_id,
+        joined_at: DateTime.utc_now()
+      })
+
+      # Subscribe to room-specific updates
+      PlingWeb.Endpoint.subscribe(topic)
+    end
+
     playlists = Playlists.load_playlists()
 
     track =
@@ -23,11 +41,26 @@ defmodule PlingWeb.SessionLive do
 
     {:ok,
      socket
+     |> assign(:room_code, room_code)
+     |> assign(:user_id, user_id)
+     |> assign(:users, list_room_users(room_code))
      |> assign(:playlists, playlists)
      |> assign(:selection, %{playlist: @initial_state.default_decade, track: track})
      |> assign(@initial_state)}
   end
 
+  # Fallback mount for unauthenticated users
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok, redirect(socket, to: ~p"/login")}
+  end
+
+  @impl true
+  def handle_info(%{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :users, list_room_users(socket.assigns.room_code))}
+  end
+
+  @impl true
   def handle_event("set_playlist", %{"decade" => decade}, socket) do
     Logger.info("Changing playlist to #{decade}")
 
@@ -89,8 +122,15 @@ defmodule PlingWeb.SessionLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_info(%{event: "presence_diff"}, socket) do
+    {:noreply, assign(socket, :users, list_room_users(socket.assigns.room_code))}
+  end
+
+  @impl true
   def handle_info(:tick, %{assigns: %{countdown: nil}} = socket), do: {:noreply, socket}
 
+  @impl true
   def handle_info(:tick, %{assigns: %{countdown: 0}} = socket) do
     Logger.info("Timeout")
 
@@ -103,6 +143,7 @@ defmodule PlingWeb.SessionLive do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info(:tick, %{assigns: %{countdown: countdown}} = socket) do
     Process.send_after(self(), :tick, 1000)
     {:noreply, assign(socket, :countdown, countdown - 1)}
@@ -138,12 +179,14 @@ defmodule PlingWeb.SessionLive do
     |> push_event("update_track", %{track: track})
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div title="Pling">
       <main class="subpixel-antialiased mx-12 select-none">
         <div class="h-full sticky">
           <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
+            <.room_info room_code={@room_code} users={@users} />
             <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
             <.counters red_count={@red_count} blue_count={@blue_count} />
             <.playlist_grid selection={@selection} />
@@ -151,6 +194,17 @@ defmodule PlingWeb.SessionLive do
         </div>
         <.embed_wrapper />
       </main>
+    </div>
+    """
+  end
+
+  def room_info(assigns) do
+    ~H"""
+    <div class="w-full text-center space-y-2">
+      <div class="text-sm text-gray-500"><%= @room_code %></div>
+      <div class="text-sm text-gray-500">
+        <%= length(@users) %> <%= if length(@users) == 1, do: "person", else: "people" %> here
+      </div>
     </div>
     """
   end
@@ -253,10 +307,10 @@ defmodule PlingWeb.SessionLive do
     </div>
     """
   end
-end
 
-defmodule Playlist do
-  def rand_track(tracks) do
-    Enum.random(tracks)
+  defp list_room_users(room_code) do
+    topic(room_code)
+    |> Presence.list()
+    |> Enum.map(fn {_user_id, data} -> hd(data.metas) end)
   end
 end
