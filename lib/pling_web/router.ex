@@ -17,11 +17,8 @@ defmodule PlingWeb.Router do
   scope "/", PlingWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-
-    live_session :default do
-      live "/x/:session", SessionLive
-    end
+    live "/", HomeLive
+    live "/session/:code", SessionLive
   end
 
   # Other scopes may use custom stacks.
