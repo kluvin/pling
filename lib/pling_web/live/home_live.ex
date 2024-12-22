@@ -26,14 +26,15 @@ defmodule PlingWeb.HomeLive do
 
   @impl true
   def handle_event("join_room", %{"room_code" => room_code}, socket) do
-    Logger.info("Joining room: #{room_code}")
-    {:noreply, push_navigate(socket, to: ~p"/session/#{room_code}")}
+    upper_room_code = String.upcase(room_code)
+    Logger.info("Joining room: #{upper_room_code}")
+    {:noreply, push_navigate(socket, to: ~p"/session/#{upper_room_code}")}
   end
 
   defp generate_room_code do
     :crypto.strong_rand_bytes(3)
     |> Base.encode32(padding: false)
-    |> String.slice(0, 6)
+    |> String.slice(0, 4)
     |> String.upcase()
   end
 end
