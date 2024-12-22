@@ -1,0 +1,171 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* This file is for your main application CSS */
+
+
+:root {
+    --accent: 136, 58, 234;
+    --accent-light: 224, 204, 250;
+    --accent-dark: 49, 10, 101;
+    --accent-gradient: linear-gradient(
+        45deg,
+        rgb(var(--accent)),
+        rgb(var(--accent-light)) 30%,
+        white 60%
+    );
+}
+
+/* https://stackoverflow.com/a/47131647 */
+button {
+  touch-action: manipulation;
+}
+
+html {
+    overscroll-behavior: none;
+    ::-webkit-scrollbar { display: none; }
+    @apply bg-[#FFFDF2];
+    /* @apply bg-[#FFFBEB]; */
+
+    font-family: system-ui, sans-serif;
+    background-size: 224px;
+}
+code {
+    font-family:
+        Menlo,
+        Monaco,
+        Lucida Console,
+        Liberation Mono,
+        DejaVu Sans Mono,
+        Bitstream Vera Sans Mono,
+        Courier New,
+        monospace;
+}
+
+:root {
+--shadow-color: 213deg 10% 57%;
+--shadow-color-secondary: #047857
+--shadow-elevation-a:
+0.5px 0.5px 0.8px hsl(var(--shadow-color) / 0.34),
+0.9px 0.8px 1.4px -1.2px hsl(var(--shadow-color) / 0.34),
+2.1px 1.9px 3.2px -2.4px hsl(var(--shadow-color) / 0.35);
+--shadow-elevation-b:
+0.5px 0.5px 0.8px hsl(var(--shadow-color) / 0.35),
+1.8px 1.6px 2.7px -0.8px hsl(var(--shadow-color) / 0.36),
+4.4px 4px 6.7px -1.6px hsl(var(--shadow-color) / 0.36),
+10.6px 9.7px 16.3px -2.4px hsl(var(--shadow-color) / 0.36);
+--shadow-elevation-c:
+0.5px 0.5px 0.8px hsl(var(--shadow-color) / 0.33),
+3.1px 2.9px 4.8px -0.4px hsl(var(--shadow-color) / 0.33),
+5.8px 5.4px 9px -0.7px hsl(var(--shadow-color) / 0.33),
+9.5px 8.8px 14.7px -1px hsl(var(--shadow-color) / 0.33),
+15.2px 13.9px 23.3px -1.4px hsl(var(--shadow-color) / 0.34),
+23.7px 21.7px 36.4px -1.8px hsl(var(--shadow-color) / 0.34),
+35.9px 33px 55.2px -2.1px hsl(var(--shadow-color) / 0.34),
+52.9px 48.5px 81.3px -2.4px hsl(var(--shadow-color) / 0.34);
+
+--shadow-elevation-c-secondary:
+0.5px 0.5px 0.8px hsl(var(--shadow-color-secondary) / 0.33),
+3.1px 2.9px 4.8px -0.4px hsl(var(--shadow-color-secondary) / 0.33),
+5.8px 5.4px 9px -0.7px hsl(var(--shadow-color-secondary) / 0.33),
+9.5px 8.8px 14.7px -1px hsl(var(--shadow-color-secondary) / 0.33),
+15.2px 13.9px 23.3px -1.4px hsl(var(--shadow-color-secondary) / 0.34),
+23.7px 21.7px 36.4px -1.8px hsl(var(--shadow-color-secondary) / 0.34),
+35.9px 33px 55.2px -2.1px hsl(var(--shadow-color-secondary) / 0.34),
+52.9px 48.5px 81.3px -2.4px hsl(var(--shadow-color-secondary) / 0.34);
+}
+
+/* Define classes to apply these shadows */
+.shadow-a {
+box-shadow: var(--shadow-elevation-a);
+}
+
+.shadow-b {
+box-shadow: var(--shadow-elevation-b);
+}
+
+.shadow-c {
+box-shadow: var(--shadow-elevation-c);
+}
+
+.shadow-c-secondary {
+box-shadow: var(--shadow-elevation-c);
+}
+
+
+/* button */
+.pushable {
+  position: relative;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 4px;
+  transition: filter 250ms;
+}
+.shadow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: hsl(0deg 0% 0% / 0.25);
+  will-change: transform;
+  transform: translateY(12px);
+  transition:
+    transform
+    600ms
+    cubic-bezier(.3, .7, .4, 1);
+}
+.edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+}
+.front {
+  display: block;
+  position: relative;
+  padding: 9rem;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  color: white;
+  will-change: transform;
+  transform: translateY(-4px);
+  transition:
+    transform
+    600ms
+    cubic-bezier(.3, .7, .4, 1);
+}
+.pushable:hover {
+  filter: brightness(110%);
+}
+.pushable:hover .front {
+  transform: translateY(-6px);
+  transition:
+    transform
+    250ms
+    cubic-bezier(.3, .7, .4, 1.5);
+}
+.pushable:active .front {
+  transform: translateY(-2px);
+  transition: transform 34ms;
+}
+.pushable:hover .shadow {
+  transform: translateY(4px);
+  transition:
+    transform
+    250ms
+    cubic-bezier(.3, .7, .4, 1.5);
+}
+.pushable:active .shadow {
+  transform: translateY(1px);
+  transition: transform 34ms;
+}
+.pushable:focus:not(:focus-visible) {
+  outline: none;
+}
