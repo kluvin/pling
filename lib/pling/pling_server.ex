@@ -10,7 +10,7 @@ defmodule Pling.PlingServer do
     is_playing: false,
     countdown: nil,
     timer_threshold: 10,
-    spotify_timeout: 30,
+    spotify_track_duration: 30,
     selection: %{playlist: "90s", track: nil},
     playlists: nil,
     room_code: nil
@@ -90,13 +90,21 @@ defmodule Pling.PlingServer do
 
   @impl true
   def handle_call({:increment_counter, color}, _from, state) do
-    new_state = CounterService.increment(state, color)
+    new_state =
+      state
+      |> CounterService.increment(color)
+      |> maybe_start_new_track()
+
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call({:decrement_counter, color}, _from, state) do
-    new_state = CounterService.decrement(state, color)
+    new_state =
+      state
+      |> CounterService.decrement(color)
+      |> maybe_start_new_track()
+
     {:reply, new_state, new_state}
   end
 
@@ -107,7 +115,7 @@ defmodule Pling.PlingServer do
       |> PlaylistService.update_track()
       |> Map.merge(%{
         is_playing: true,
-        countdown: state.spotify_timeout
+        countdown: state.spotify_track_duration
       })
 
     Process.send_after(self(), :tick, 1000)
@@ -129,7 +137,7 @@ defmodule Pling.PlingServer do
 
   @impl true
   def handle_call(:start_timer, _from, state) do
-    new_state = %{state | is_playing: true, countdown: state.spotify_timeout}
+    new_state = %{state | is_playing: true, countdown: state.spotify_track_duration}
     {:reply, new_state, new_state}
   end
 
@@ -168,11 +176,16 @@ defmodule Pling.PlingServer do
 
   # Private timer helpers
   defp handle_timer_timeout(state) do
-    state
-    |> PlaylistService.update_track()
-    |> Map.put(:countdown, state.spotify_timeout)
-    |> Map.put(:is_playing, true)
-    |> tap(&schedule_next_tick/1)
+    Logger.info("Changed track due to timeout")
+
+    new_state =
+      state
+      |> PlaylistService.update_track()
+      |> Map.put(:countdown, state.spotify_track_duration)
+      |> Map.put(:is_playing, true)
+      |> tap(&schedule_next_tick/1)
+
+    new_state
   end
 
   defp update_countdown(state, new_countdown) do
@@ -207,4 +220,26 @@ defmodule Pling.PlingServer do
       %{state: for_presence(new_state)}
     )
   end
+
+  defp maybe_start_new_track(%{is_playing: false} = state) do
+    new_state =
+      state
+      |> PlaylistService.update_track()
+      |> Map.merge(%{
+        is_playing: true,
+        countdown: state.spotify_track_duration
+      })
+      |> tap(&schedule_next_tick/1)
+
+    # Broadcast the spotify_play event
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "spotify_play",
+      %{}
+    )
+
+    new_state
+  end
+
+  defp maybe_start_new_track(state), do: state
 end

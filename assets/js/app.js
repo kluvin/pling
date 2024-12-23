@@ -27,13 +27,30 @@ let csrfToken = document
   .getAttribute("content");
 
 let Hooks = {
-  PlingButton: {
+  PlingCounter: {
+    togglePlay() {
+      this.pushEvent("toggle_play");
+      window.EmbedController.togglePlay();
+    },
+
     mounted() {
       this.el.addEventListener("pointerdown", () => {
-        console.log("Sending toggle_play event to server");
-        this.pushEvent("toggle_play");
-        window.EmbedController.togglePlay();
+        // First load new track
+        this.pushEvent("load_new_track", {});
+        // Then toggle play
+        this.togglePlay();
       });
+    },
+  },
+
+  PlingButton: {
+    togglePlay() {
+      this.pushEvent("toggle_play");
+      window.EmbedController.togglePlay();
+    },
+
+    mounted() {
+      this.el.addEventListener("pointerdown", () => this.togglePlay());
     },
   },
 };

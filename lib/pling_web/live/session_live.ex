@@ -73,6 +73,11 @@ defmodule PlingWeb.SessionLive do
     {:noreply, assign(socket, :countdown, countdown)}
   end
 
+  @impl true
+  def handle_info(%Phoenix.Socket.Broadcast{event: "spotify_play"}, socket) do
+    {:noreply, push_event(socket, "spotify_play", %{})}
+  end
+
   defp update_state_and_broadcast(socket, new_state) do
     broadcast_state_update(socket.assigns.room_code, new_state)
     assign(socket, new_state)
@@ -143,6 +148,13 @@ defmodule PlingWeb.SessionLive do
      update_state_and_socket(socket, new_state, [{:update_track, new_state.selection.track}])}
   end
 
+  def handle_event("load_new_track", _params, socket) do
+    new_state = Pling.PlingServer.next_track(socket.assigns.room_code)
+
+    {:noreply,
+     update_state_and_socket(socket, new_state, [{:update_track, new_state.selection.track}])}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -160,7 +172,13 @@ defmodule PlingWeb.SessionLive do
     <div class="w-full text-center space-y-2">
       <div class="text-sm text-gray-500"><%= @room_code %></div>
       <div class="text-sm text-gray-500">
-        <%= length(@users) %> <%= if length(@users) == 1, do: "person", else: "people" %> here
+        <%= if length(@users) == 1 do %>
+          <%= Enum.at(@users, 0).user_id %> is here
+        <% else %>
+          <%= Enum.at(@users, 0).user_id %> is joined by <%= Enum.slice(@users, 1..-1)
+          |> Enum.map(& &1.user_id)
+          |> Enum.join(", ") %>
+        <% end %>
       </div>
     </div>
     """
@@ -212,6 +230,8 @@ defmodule PlingWeb.SessionLive do
     ~H"""
     <div class="relative flex flex-col items-center gap-4">
       <button
+        id={"#{@color}-counter-incr"}
+        phx-hook="PlingCounter"
         phx-click={
           JS.push("increment_counter", value: %{color: @color})
           |> JS.push("next_track")
@@ -228,7 +248,9 @@ defmodule PlingWeb.SessionLive do
         </span>
       </button>
       <button
+        phx-hook="PlingCounter"
         phx-click={JS.push("decrement_counter", value: %{color: @color})}
+        id={"#{@color}-counter-decr"}
         class="pushable self-center"
       >
         <span class="shadow"></span>
