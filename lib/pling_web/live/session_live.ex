@@ -9,10 +9,14 @@ defmodule PlingWeb.SessionLive do
 
   @impl true
   def mount(%{"room_code" => room_code}, %{"user_id" => user_id}, socket) do
+    Logger.metadata(room_code: room_code, user_id: user_id)
+    Logger.info("User joining room", event: :room_join)
+
     if connected?(socket) do
       topic = topic(room_code)
 
       DynamicSupervisor.start_child(Pling.RoomSupervisor, {Pling.PlingServer, room_code})
+      Logger.info("Started PlingServer", event: :server_start)
 
       Presence.track(self(), topic, user_id, %{
         user_id: user_id,
@@ -49,8 +53,10 @@ defmodule PlingWeb.SessionLive do
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
     users = list_room_users(socket.assigns.room_code)
+    Logger.info("Presence update", event: :presence_change, user_count: length(users))
 
     if users == [] do
+      Logger.info("Room empty, resetting state", event: :room_reset)
       Pling.PlingServer.reset_state(socket.assigns.room_code)
     end
 
@@ -60,6 +66,11 @@ defmodule PlingWeb.SessionLive do
   @impl true
   def handle_info(%{event: "state_update", payload: %{state: state}}, socket) do
     {:noreply, assign(socket, state)}
+  end
+
+  @impl true
+  def handle_info(%{event: "tick", payload: %{countdown: countdown}}, socket) do
+    {:noreply, assign(socket, :countdown, countdown)}
   end
 
   defp update_state_and_broadcast(socket, new_state) do
@@ -84,17 +95,19 @@ defmodule PlingWeb.SessionLive do
   end
 
   def handle_event("increment_counter", %{"color" => color}, socket) do
+    Logger.info("Counter increment", event: :counter_increment, color: color)
     new_state = Pling.PlingServer.increment_counter(socket.assigns.room_code, color)
     {:noreply, update_state_and_socket(socket, new_state)}
   end
 
   def handle_event("decrement_counter", %{"color" => color}, socket) do
+    Logger.info("Counter decrement", event: :counter_decrement, color: color)
     new_state = Pling.PlingServer.decrement_counter(socket.assigns.room_code, color)
     {:noreply, update_state_and_socket(socket, new_state)}
   end
 
   def handle_event("set_playlist", %{"decade" => decade}, socket) do
-    Logger.info("Changing playlist to #{decade}")
+    Logger.info("Playlist change", event: :playlist_change, decade: decade)
     new_state = Pling.PlingServer.set_playlist(socket.assigns.room_code, decade)
 
     {:noreply,
@@ -109,9 +122,12 @@ defmodule PlingWeb.SessionLive do
 
     {new_state, extra_events} =
       if current_state.is_playing do
+        Logger.info("Stopping playback", event: :playback_stop)
+
         {Pling.PlingServer.stop_playback(socket.assigns.room_code),
          [{:spotify_pause}, :ring_bell]}
       else
+        Logger.info("Starting playback", event: :playback_start)
         {Pling.PlingServer.start_playback(socket.assigns.room_code), [{:spotify_play}]}
       end
 
@@ -120,6 +136,7 @@ defmodule PlingWeb.SessionLive do
 
   @impl true
   def handle_event("next_track", _params, socket) do
+    Logger.info("Advancing to next track", event: :next_track)
     new_state = Pling.PlingServer.next_track(socket.assigns.room_code)
 
     {:noreply,
@@ -151,12 +168,8 @@ defmodule PlingWeb.SessionLive do
 
   def pling_button(assigns) do
     ~H"""
-    <div id="start" class="flex place-content-center w-screen px-12">
-      <button
-        id="pling-button"
-        class="pushable relative grid place-items-center"
-        phx-hook="PlingButton"
-      >
+    <div id="start" phx-hook="PlingButton" class="flex place-content-center w-screen px-12">
+      <button class="pushable relative grid place-items-center">
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= if @countdown && @countdown <= @timer_threshold, do: @countdown, else: "PLING" %>
         </h1>
@@ -246,7 +259,8 @@ defmodule PlingWeb.SessionLive do
 
   defp list_room_users(room_code) do
     presence_data = topic(room_code) |> Presence.list()
-    Logger.info("Presence data: #{inspect(presence_data)}")
+    user_count = map_size(presence_data)
+    Logger.info("Room users listed", event: :list_users, user_count: user_count)
 
     presence_data
     |> Map.keys()
@@ -256,6 +270,7 @@ defmodule PlingWeb.SessionLive do
   end
 
   defp broadcast_state_update(room_code, state) do
+    Logger.info("Broadcasting state update", event: :state_broadcast)
     PlingWeb.Endpoint.broadcast(topic(room_code), "state_update", %{state: state})
   end
 end
