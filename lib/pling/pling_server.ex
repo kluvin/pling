@@ -185,6 +185,18 @@ defmodule Pling.PlingServer do
       |> Map.put(:is_playing, true)
       |> tap(&schedule_next_tick/1)
 
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "spotify_track_and_play",
+      %{track: new_state.selection.track}
+    )
+
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "ring_bell",
+      %{}
+    )
+
     new_state
   end
 
@@ -231,11 +243,10 @@ defmodule Pling.PlingServer do
       })
       |> tap(&schedule_next_tick/1)
 
-    # Broadcast the spotify_play event
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
-      "spotify_play",
-      %{}
+      "spotify_track_and_play",
+      %{track: new_state.selection.track}
     )
 
     new_state

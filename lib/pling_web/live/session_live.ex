@@ -74,8 +74,15 @@ defmodule PlingWeb.SessionLive do
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "spotify_play"}, socket) do
-    {:noreply, push_event(socket, "spotify_play", %{})}
+  def handle_info(
+        %Phoenix.Socket.Broadcast{event: "spotify_track_and_play", payload: %{track: track}},
+        socket
+      ) do
+    {:noreply, push_event(socket, "spotify_track_and_play", %{track: track})}
+  end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "ring_bell"}, socket) do
+    {:noreply, push_event(socket, "ring_bell", %{})}
   end
 
   defp update_state_and_broadcast(socket, new_state) do
