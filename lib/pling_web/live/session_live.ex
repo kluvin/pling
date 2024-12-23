@@ -5,7 +5,6 @@ defmodule PlingWeb.SessionLive do
   alias PlingWeb.Presence
   require Logger
 
-  # Add room-specific topic
   def topic(room_code), do: "pling:room:#{room_code}"
 
   @impl true
@@ -13,10 +12,8 @@ defmodule PlingWeb.SessionLive do
     if connected?(socket) do
       topic = topic(room_code)
 
-      # Ensure room server exists
       DynamicSupervisor.start_child(Pling.RoomSupervisor, {Pling.PlingServer, room_code})
 
-      # Track user with initial game state
       Presence.track(self(), topic, user_id, %{
         user_id: user_id,
         joined_at: DateTime.utc_now()
@@ -25,7 +22,7 @@ defmodule PlingWeb.SessionLive do
       PlingWeb.Endpoint.subscribe(topic)
     end
 
-    current_state = get_room_state(room_code)
+    current_state = Pling.PlingServer.get_state(room_code)
 
     socket =
       socket
@@ -44,7 +41,6 @@ defmodule PlingWeb.SessionLive do
     {:ok, socket}
   end
 
-  # Fallback mount for unauthenticated users
   @impl true
   def mount(_params, _session, socket) do
     {:ok, redirect(socket, to: ~p"/login")}
@@ -54,14 +50,8 @@ defmodule PlingWeb.SessionLive do
   def handle_info(%{event: "presence_diff"}, socket) do
     users = list_room_users(socket.assigns.room_code)
 
-    # Reset state if room is empty
     if users == [] do
       Pling.PlingServer.reset_state(socket.assigns.room_code)
-
-      broadcast_state_update(
-        socket.assigns.room_code,
-        Pling.PlingServer.get_state(socket.assigns.room_code)
-      )
     end
 
     {:noreply, assign(socket, :users, users)}
@@ -72,20 +62,13 @@ defmodule PlingWeb.SessionLive do
     {:noreply, assign(socket, state)}
   end
 
-  @impl true
-  def handle_info(:tick, socket) do
-    # Remove tick logic as it's now handled in PlingServer
-    {:noreply, socket}
+  defp update_state_and_broadcast(socket, new_state) do
+    broadcast_state_update(socket.assigns.room_code, new_state)
+    assign(socket, new_state)
   end
 
-  # Add helper for common state updates
-  defp update_state_and_socket(socket, new_state, extra_events \\ []) do
-    broadcast_state_update(socket.assigns.room_code, new_state)
-
-    socket = assign(socket, new_state)
-
-    # Apply any additional events
-    Enum.reduce(extra_events, socket, fn
+  defp push_client_events(socket, events) do
+    Enum.reduce(events, socket, fn
       {:update_track, track}, acc -> push_event(acc, "update_track", %{track: track})
       {:spotify_play}, acc -> push_event(acc, "spotify_play", %{})
       {:spotify_pause}, acc -> push_event(acc, "spotify_pause", %{})
@@ -94,8 +77,12 @@ defmodule PlingWeb.SessionLive do
     end)
   end
 
-  # Consolidate handle_event functions for counters
-  @impl
+  defp update_state_and_socket(socket, new_state, extra_events \\ []) do
+    socket
+    |> update_state_and_broadcast(new_state)
+    |> push_client_events(extra_events)
+  end
+
   def handle_event("increment_counter", %{"color" => color}, socket) do
     new_state = Pling.PlingServer.increment_counter(socket.assigns.room_code, color)
     {:noreply, update_state_and_socket(socket, new_state)}
@@ -106,7 +93,6 @@ defmodule PlingWeb.SessionLive do
     {:noreply, update_state_and_socket(socket, new_state)}
   end
 
-  # Simplify set_playlist handler
   def handle_event("set_playlist", %{"decade" => decade}, socket) do
     Logger.info("Changing playlist to #{decade}")
     new_state = Pling.PlingServer.set_playlist(socket.assigns.room_code, decade)
@@ -119,16 +105,13 @@ defmodule PlingWeb.SessionLive do
   end
 
   def handle_event("toggle_play", _params, socket) do
-    IO.puts("Received toggle_play event")
-    current_state = get_room_state(socket.assigns.room_code)
+    current_state = Pling.PlingServer.get_state(socket.assigns.room_code)
 
     {new_state, extra_events} =
       if current_state.is_playing do
-        # When stopping, send pause event before bell
         {Pling.PlingServer.stop_playback(socket.assigns.room_code),
          [{:spotify_pause}, :ring_bell]}
       else
-        # When starting, send play event
         {Pling.PlingServer.start_playback(socket.assigns.room_code), [{:spotify_play}]}
       end
 
@@ -262,16 +245,14 @@ defmodule PlingWeb.SessionLive do
   end
 
   defp list_room_users(room_code) do
-    topic(room_code)
-    |> Presence.list()
+    presence_data = topic(room_code) |> Presence.list()
+    Logger.info("Presence data: #{inspect(presence_data)}")
+
+    presence_data
     |> Map.keys()
     |> Enum.map(fn user_id ->
       %{user_id: user_id, joined_at: DateTime.utc_now()}
     end)
-  end
-
-  defp get_room_state(room_code) do
-    Pling.PlingServer.get_state(room_code)
   end
 
   defp broadcast_state_update(room_code, state) do
