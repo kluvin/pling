@@ -4,14 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <meta name="mobile-web-app-capable" content="yes" />
     <.live_title suffix="">
       <%= assigns[:page_title] || "Pling" %>
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
+    <script src="https://open.spotify.com/embed/iframe-api/v1" async>
+    </script>
   </head>
   <body class="antialiased">
-    <%= @inner_content %>
+    <div class="h-dvh sticky top-0 px-4 py-8 ">
+      <%= @inner_content %>
+    </div>
+    <div class="embed-wrapper z-10 pb-4 mx-auto w-10/12 sticky">
+      <iframe
+        id="embed-iframe"
+        style="border-radius:12px"
+        frameborder="0"
+        allowfullscreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        width="100%"
+      >
+      </iframe>
+    </div>
   </body>
 </html>

@@ -1,4 +1,4 @@
-defmodule Pling.Names do
+defmodule Pling.Services.NamesService do
   def generate do
     # N = 100^2 = 10k
     adjectives = [

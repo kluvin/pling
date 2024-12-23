@@ -1,7 +1,6 @@
 defmodule PlingWeb.SessionLive do
   use PlingWeb, :live_view
   import PlingWeb.Components.PlaylistSelector
-  alias Pling.Playlists
   alias Phoenix.LiveView.JS
   alias PlingWeb.Presence
   require Logger
@@ -9,44 +8,40 @@ defmodule PlingWeb.SessionLive do
   # Add room-specific topic
   def topic(room_code), do: "pling:room:#{room_code}"
 
-  @initial_state %{
-    red_count: 0,
-    blue_count: 0,
-    is_playing: false,
-    countdown: nil,
-    timer_threshold: 10,
-    spotify_timeout: 30,
-    default_decade: "90s"
-  }
-
   @impl true
   def mount(%{"room_code" => room_code}, %{"user_id" => user_id}, socket) do
     if connected?(socket) do
       topic = topic(room_code)
 
-      # Track user in this specific room
+      # Ensure room server exists
+      DynamicSupervisor.start_child(Pling.RoomSupervisor, {Pling.PlingServer, room_code})
+
+      # Track user with initial game state
       Presence.track(self(), topic, user_id, %{
         user_id: user_id,
         joined_at: DateTime.utc_now()
       })
 
-      # Subscribe to room-specific updates
       PlingWeb.Endpoint.subscribe(topic)
     end
 
-    playlists = Playlists.load_playlists()
+    current_state = get_room_state(room_code)
 
-    track =
-      playlists |> Playlists.get_tracks(@initial_state.default_decade) |> Playlists.random_track()
+    socket =
+      socket
+      |> assign(:room_code, room_code)
+      |> assign(:user_id, user_id)
+      |> assign(:users, list_room_users(room_code))
+      |> assign(current_state)
+      |> then(fn socket ->
+        if connected?(socket) and current_state.selection.track do
+          push_event(socket, "update_track", %{track: current_state.selection.track})
+        else
+          socket
+        end
+      end)
 
-    {:ok,
-     socket
-     |> assign(:room_code, room_code)
-     |> assign(:user_id, user_id)
-     |> assign(:users, list_room_users(room_code))
-     |> assign(:playlists, playlists)
-     |> assign(:selection, %{playlist: @initial_state.default_decade, track: track})
-     |> assign(@initial_state)}
+    {:ok, socket}
   end
 
   # Fallback mount for unauthenticated users
@@ -57,143 +52,105 @@ defmodule PlingWeb.SessionLive do
 
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
-    {:noreply, assign(socket, :users, list_room_users(socket.assigns.room_code))}
+    users = list_room_users(socket.assigns.room_code)
+
+    # Reset state if room is empty
+    if users == [] do
+      Pling.PlingServer.reset_state(socket.assigns.room_code)
+
+      broadcast_state_update(
+        socket.assigns.room_code,
+        Pling.PlingServer.get_state(socket.assigns.room_code)
+      )
+    end
+
+    {:noreply, assign(socket, :users, users)}
   end
 
   @impl true
-  def handle_event("set_playlist", %{"decade" => decade}, socket) do
-    Logger.info("Changing playlist to #{decade}")
+  def handle_info(%{event: "state_update", payload: %{state: state}}, socket) do
+    {:noreply, assign(socket, state)}
+  end
 
-    socket =
-      socket
-      |> set_selection(decade)
-      |> reset_playback()
-
+  @impl true
+  def handle_info(:tick, socket) do
+    # Remove tick logic as it's now handled in PlingServer
     {:noreply, socket}
   end
 
-  def handle_event("next_track", _params, socket) do
-    Logger.info("Loading next track for playlist #{socket.assigns.selection.playlist}")
-    {:noreply, set_selection(socket, socket.assigns.selection.playlist)}
+  # Add helper for common state updates
+  defp update_state_and_socket(socket, new_state, extra_events \\ []) do
+    broadcast_state_update(socket.assigns.room_code, new_state)
+
+    socket = assign(socket, new_state)
+
+    # Apply any additional events
+    Enum.reduce(extra_events, socket, fn
+      {:update_track, track}, acc -> push_event(acc, "update_track", %{track: track})
+      {:spotify_play}, acc -> push_event(acc, "spotify_play", %{})
+      {:spotify_pause}, acc -> push_event(acc, "spotify_pause", %{})
+      :ring_bell, acc -> push_event(acc, "ring_bell", %{})
+      _, acc -> acc
+    end)
   end
 
+  # Consolidate handle_event functions for counters
+  @impl
   def handle_event("increment_counter", %{"color" => color}, socket) do
-    counter_key = String.to_atom("#{color}_count")
-    new_count = socket.assigns[counter_key] + 1
-    Logger.info("Incrementing #{color} counter to #{new_count}")
-
-    socket =
-      socket
-      |> update(counter_key, &(&1 + 1))
-      |> reset_playback()
-
-    {:noreply, socket}
+    new_state = Pling.PlingServer.increment_counter(socket.assigns.room_code, color)
+    {:noreply, update_state_and_socket(socket, new_state)}
   end
 
   def handle_event("decrement_counter", %{"color" => color}, socket) do
-    counter_key = String.to_atom("#{color}_count")
-    # Prevent negative counts
-    new_count = max(0, socket.assigns[counter_key] - 1)
-    Logger.info("Decrementing #{color} counter to #{new_count}")
-
-    {:noreply, update(socket, counter_key, &max(0, &1 - 1))}
+    new_state = Pling.PlingServer.decrement_counter(socket.assigns.room_code, color)
+    {:noreply, update_state_and_socket(socket, new_state)}
   end
 
-  def handle_event("toggle_play", _params, %{assigns: %{is_playing: false}} = socket) do
-    Logger.info("Toggle play: starting playback")
+  # Simplify set_playlist handler
+  def handle_event("set_playlist", %{"decade" => decade}, socket) do
+    Logger.info("Changing playlist to #{decade}")
+    new_state = Pling.PlingServer.set_playlist(socket.assigns.room_code, decade)
 
-    socket =
-      socket
-      |> start_playback()
-
-    Process.send_after(self(), :tick, 1000)
-    {:noreply, socket}
+    {:noreply,
+     update_state_and_socket(socket, new_state, [
+       {:update_track, new_state.selection.track},
+       :spotify_toggle
+     ])}
   end
 
-  def handle_event("toggle_play", _params, %{assigns: %{is_playing: true}} = socket) do
-    Logger.info("Stopping playback")
+  def handle_event("toggle_play", _params, socket) do
+    IO.puts("Received toggle_play event")
+    current_state = get_room_state(socket.assigns.room_code)
 
-    socket =
-      socket
-      |> reset_playback()
-      |> push_event("ring_bell", %{})
-      |> push_event("spotify_toggle", %{})
+    {new_state, extra_events} =
+      if current_state.is_playing do
+        # When stopping, send pause event before bell
+        {Pling.PlingServer.stop_playback(socket.assigns.room_code),
+         [{:spotify_pause}, :ring_bell]}
+      else
+        # When starting, send play event
+        {Pling.PlingServer.start_playback(socket.assigns.room_code), [{:spotify_play}]}
+      end
 
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info(%{event: "presence_diff"}, socket) do
-    {:noreply, assign(socket, :users, list_room_users(socket.assigns.room_code))}
+    {:noreply, update_state_and_socket(socket, new_state, extra_events)}
   end
 
   @impl true
-  def handle_info(:tick, %{assigns: %{countdown: nil}} = socket), do: {:noreply, socket}
+  def handle_event("next_track", _params, socket) do
+    new_state = Pling.PlingServer.next_track(socket.assigns.room_code)
 
-  @impl true
-  def handle_info(:tick, %{assigns: %{countdown: 0}} = socket) do
-    Logger.info("Timeout")
-
-    socket =
-      socket
-      |> push_event("ring_bell", %{})
-      |> set_selection(socket.assigns.selection.playlist)
-      |> start_playback()
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info(:tick, %{assigns: %{countdown: countdown}} = socket) do
-    Process.send_after(self(), :tick, 1000)
-    {:noreply, assign(socket, :countdown, countdown - 1)}
-  end
-
-  defp reset_playback(socket) do
-    Logger.info("Reset playback")
-
-    socket
-    |> assign(:is_playing, false)
-    |> assign(:countdown, nil)
-    |> push_event("spotify_toggle", %{})
-  end
-
-  defp start_playback(socket) do
-    Logger.info("Start playback")
-
-    socket
-    |> set_selection(socket.assigns.selection.playlist)
-    |> assign(:is_playing, true)
-    |> assign(:countdown, socket.assigns.spotify_timeout)
-    |> push_event("spotify_toggle", %{})
-  end
-
-  defp set_selection(socket, playlist) do
-    track =
-      socket.assigns.playlists
-      |> Playlists.get_tracks(playlist)
-      |> Playlists.random_track()
-
-    socket
-    |> assign(:selection, %{playlist: playlist, track: track})
-    |> push_event("update_track", %{track: track})
+    {:noreply,
+     update_state_and_socket(socket, new_state, [{:update_track, new_state.selection.track}])}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div title="Pling">
-      <main class="subpixel-antialiased mx-12 select-none">
-        <div class="h-full sticky">
-          <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
-            <.room_info room_code={@room_code} users={@users} />
-            <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
-            <.counters red_count={@red_count} blue_count={@blue_count} />
-            <.playlist_grid selection={@selection} />
-          </div>
-        </div>
-        <.embed_wrapper />
-      </main>
+    <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
+      <.room_info room_code={@room_code} users={@users} />
+      <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
+      <.counters red_count={@red_count} blue_count={@blue_count} />
+      <.playlist_grid selection={@selection} />
     </div>
     """
   end
@@ -211,8 +168,12 @@ defmodule PlingWeb.SessionLive do
 
   def pling_button(assigns) do
     ~H"""
-    <div id="start" class="flex place-content-center w-screen px-12" phx-click="toggle_play">
-      <button id="pling-button" class="pushable relative grid place-items-center">
+    <div id="start" class="flex place-content-center w-screen px-12">
+      <button
+        id="pling-button"
+        class="pushable relative grid place-items-center"
+        phx-hook="PlingButton"
+      >
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= if @countdown && @countdown <= @timer_threshold, do: @countdown, else: "PLING" %>
         </h1>
@@ -300,17 +261,20 @@ defmodule PlingWeb.SessionLive do
     """
   end
 
-  defp embed_wrapper(assigns) do
-    ~H"""
-    <div class="embed-wrapper z-10 pb-2 sticky w-full">
-      <div id="embed-iframe" style="display: none; height: 0; width: 0; position: absolute;"></div>
-    </div>
-    """
-  end
-
   defp list_room_users(room_code) do
     topic(room_code)
     |> Presence.list()
-    |> Enum.map(fn {_user_id, data} -> hd(data.metas) end)
+    |> Map.keys()
+    |> Enum.map(fn user_id ->
+      %{user_id: user_id, joined_at: DateTime.utc_now()}
+    end)
+  end
+
+  defp get_room_state(room_code) do
+    Pling.PlingServer.get_state(room_code)
+  end
+
+  defp broadcast_state_update(room_code, state) do
+    PlingWeb.Endpoint.broadcast(topic(room_code), "state_update", %{state: state})
   end
 end

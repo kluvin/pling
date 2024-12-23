@@ -20,7 +20,9 @@ defmodule Pling.Application do
       # {Pling.Worker, arg},
       # Start to serve requests, typically the last entry
       PlingWeb.Presence,
-      PlingWeb.Endpoint
+      PlingWeb.Endpoint,
+      {Registry, keys: :unique, name: Pling.PlingServerRegistry},
+      {DynamicSupervisor, name: Pling.RoomSupervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

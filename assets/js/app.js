@@ -26,9 +26,22 @@ let csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
+let Hooks = {
+  PlingButton: {
+    mounted() {
+      this.el.addEventListener("pointerdown", () => {
+        console.log("Sending toggle_play event to server");
+        this.pushEvent("toggle_play");
+        window.EmbedController.togglePlay();
+      });
+    },
+  },
+};
+
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
+  hooks: Hooks,
 });
 
 // Show progress bar on live navigation and form submits
@@ -37,28 +50,69 @@ window.addEventListener("phx:page-loading-start", (_info) => topbar.show(300));
 window.addEventListener("phx:page-loading-stop", (_info) => topbar.hide());
 
 window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  console.log("Spotify IFrame API ready");
   const element = document.getElementById("embed-iframe");
+  if (!element) {
+    console.warn("Spotify embed iframe not found");
+    return;
+  }
+
+  // Get initial track from the data attribute
+  const initialTrack = element.getAttribute("data-initial-track");
+
   const callback = (EmbedController) => {
+    console.log("Spotify Embed Controller initialized");
     window.EmbedController = EmbedController;
+    // Try to initialize playback state
+    EmbedController.play().catch((e) =>
+      console.log("Initial play attempt:", e)
+    );
   };
 
+  options = {
+    uri: initialTrack || "spotify:track:3SFXsFpeGmBTtQvKiwYMDA", // Use initial track or fallback
+    theme: "dark",
+  };
+
+  // Use setTimeout instead of requestAnimationFrame
   setTimeout(() => {
-    IFrameAPI.createController(element, {}, callback);
+    console.log("Creating Spotify controller with options:", options);
+    IFrameAPI.createController(element, options, callback);
   }, 0);
 };
 
-window.addEventListener("phx:spotify_toggle", (_event) => {
-  window.EmbedController.togglePlay();
+// Wrap controller actions in try-catch for better error handling
+window.addEventListener("phx:spotify_play", async (_event) => {
+  console.log("Playing Spotify");
+  try {
+    await window.EmbedController.play();
+  } catch (e) {
+    console.error("Error playing:", e);
+  }
+});
+
+window.addEventListener("phx:spotify_pause", async (_event) => {
+  console.log("Pausing Spotify");
+  try {
+    await window.EmbedController.pause();
+  } catch (e) {
+    console.error("Error pausing:", e);
+  }
 });
 
 window.addEventListener("phx:update_track", (event) => {
+  console.log("Updating track to:", event.detail.track);
   const track = event.detail.track;
   window.EmbedController.loadUri(track);
 });
 
 window.addEventListener("phx:ring_bell", (_event) => {
-  console.log("hello ring");
+  console.log("Playing bell sound");
   document.getElementById("bell").play();
+});
+
+window.addEventListener("spotify-toggle", () => {
+  window.EmbedController.togglePlay();
 });
 
 // connect if there are any LiveViews on the page
@@ -69,3 +123,12 @@ liveSocket.connect();
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
+
+// Add these event handlers
+window.addEventListener("phx:spotify_play", () => {
+  document.querySelector(".embed-wrapper")?.classList.add("hidden");
+});
+
+window.addEventListener("phx:spotify_pause", () => {
+  document.querySelector(".embed-wrapper")?.classList.remove("hidden");
+});
