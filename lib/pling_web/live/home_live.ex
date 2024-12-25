@@ -10,7 +10,6 @@ defmodule PlingWeb.HomeLive do
   @impl true
   def handle_event("create_room", _params, socket) do
     room_code = generate_room_code()
-    Logger.info("Creating new room: #{room_code}")
     {:noreply, push_navigate(socket, to: ~p"/session/#{room_code}")}
   end
 

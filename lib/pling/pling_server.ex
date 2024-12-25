@@ -9,8 +9,9 @@ defmodule Pling.PlingServer do
     blue_count: 0,
     is_playing: false,
     countdown: nil,
-    timer_threshold: 30,
-    spotify_track_duration: 10,
+    timer_ref: nil,
+    timer_threshold: 10,
+    spotify_track_duration: 30,
     selection: %{playlist: "90s", track: nil},
     playlists: nil,
     room_code: nil
@@ -192,7 +193,6 @@ defmodule Pling.PlingServer do
       |> PlaylistService.update_track()
       |> Map.put(:countdown, state.spotify_track_duration)
       |> Map.put(:is_playing, true)
-      |> tap(&schedule_next_tick/1)
 
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
@@ -218,8 +218,8 @@ defmodule Pling.PlingServer do
   end
 
   defp schedule_next_tick(state) when state.is_playing == true do
-    Process.send_after(self(), :tick, 1000)
-    state
+    timer_ref = Process.send_after(self(), :tick, 1000)
+    %{state | timer_ref: timer_ref}
   end
 
   defp schedule_next_tick(state), do: state
@@ -247,18 +247,73 @@ defmodule Pling.PlingServer do
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
       "state_update",
-      %{state: for_presence(new_state)}
+      %{state: for_client(new_state)}
     )
   end
 
-  defp for_presence(state) do
-    # Restrict to certain fields for the front-end
-    state
-    |> Map.take(Map.keys(@initial_state))
-    |> Map.update!(:selection, &Map.take(&1, [:track, :playlist]))
+  defp for_client(state) do
+    %{
+      red_count: state.red_count,
+      blue_count: state.blue_count,
+      is_playing: state.is_playing,
+      countdown: state.countdown,
+      timer_threshold: state.timer_threshold,
+      selection: Map.take(state.selection, [:track, :playlist])
+    }
   end
 
-  defp via_tuple(room_code) do
+  def via_tuple(room_code) do
     {:via, Registry, {Pling.PlingServerRegistry, room_code}}
+  end
+
+  # Monitor LiveView process
+  @impl true
+  def handle_info({:monitor_liveview, pid}, state) do
+    # Register client in the Registry instead of state
+    Registry.register(Pling.ClientRegistry, state.room_code, pid)
+    # Still monitor for cleanup
+    Process.monitor(pid)
+
+    client_count = count_clients(state.room_code)
+
+    Logger.info("LiveView connected",
+      event: :liveview_monitor,
+      pid: inspect(pid),
+      connection_count: client_count
+    )
+
+    {:noreply, state}
+  end
+
+  # Handle LiveView process termination
+  @impl true
+  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+    client_count = count_clients(state.room_code)
+
+    Logger.info("LiveView disconnected",
+      event: :liveview_down,
+      pid: inspect(pid),
+      reason: reason,
+      # One is about to be removed
+      connection_count: client_count - 1
+    )
+
+    # Count includes the process that's terminating
+    if client_count <= 1 do
+      Logger.info("No more connections, terminating", event: :server_terminate)
+      {:stop, :normal, state}
+    else
+      {:noreply, state}
+    end
+  end
+
+  defp count_clients(room_code) do
+    room_code
+    |> clients()
+    |> length()
+  end
+
+  defp clients(room_code) do
+    Registry.lookup(Pling.ClientRegistry, room_code)
   end
 end

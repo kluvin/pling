@@ -50,15 +50,19 @@ defmodule Pling.Services.PlaylistService do
   end
 
   def start_playback(state) do
-    state
-    |> update_track()
-    |> Map.merge(%{
+    Map.merge(state, %{
       is_playing: true,
       countdown: state.spotify_track_duration
     })
   end
 
   def stop_playback(state) do
-    Map.merge(state, %{is_playing: false, countdown: nil})
+    if state.timer_ref, do: Process.cancel_timer(state.timer_ref)
+
+    Map.merge(state, %{
+      is_playing: false,
+      countdown: nil,
+      timer_ref: nil
+    })
   end
 end

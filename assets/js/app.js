@@ -18,8 +18,6 @@ let Hooks = {
 
     mounted() {
       this.el.addEventListener("pointerdown", () => {
-        // We push a "load_new_track" event to the server,
-        // then in the callback, we attempt toggling the local embed player.
         this.pushEvent("load_new_track", {}, (_reply) => {
           this.togglePlay();
         });

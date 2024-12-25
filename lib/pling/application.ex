@@ -22,6 +22,7 @@ defmodule Pling.Application do
       PlingWeb.Presence,
       PlingWeb.Endpoint,
       {Registry, keys: :unique, name: Pling.PlingServerRegistry},
+      {Registry, keys: :duplicate, name: Pling.ClientRegistry},
       {DynamicSupervisor, name: Pling.RoomSupervisor}
     ]
 

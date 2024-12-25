@@ -3,6 +3,7 @@ defmodule PlingWeb.SessionLive do
   import PlingWeb.Components.PlaylistSelector
   alias Phoenix.LiveView.JS
   alias PlingWeb.Presence
+  alias Pling.PlingServer
   require Logger
 
   def topic(room_code), do: "pling:room:#{room_code}"
@@ -15,9 +16,14 @@ defmodule PlingWeb.SessionLive do
     if connected?(socket) do
       topic = topic(room_code)
 
-      # Start the GenServer for this room (if not already started).
-      DynamicSupervisor.start_child(Pling.RoomSupervisor, {Pling.PlingServer, room_code})
-      Logger.info("Started PlingServer", event: :server_start)
+      # Start the room server and get its pid
+      {:ok, pid} =
+        DynamicSupervisor.start_child(
+          Pling.RoomSupervisor,
+          {PlingServer, room_code}
+        )
+
+      send(pid, {:monitor_liveview, self()})
 
       Presence.track(self(), topic, user_id, %{
         user_id: user_id,
@@ -27,25 +33,24 @@ defmodule PlingWeb.SessionLive do
       PlingWeb.Endpoint.subscribe(topic)
     end
 
-    # Fetch current state from server
     current_state = Pling.PlingServer.get_state(room_code)
+    users = list_room_users(room_code)
+
+    first_user_leader_election =
+      case users do
+        [%{user_id: first_user_id} | _] -> first_user_id == user_id
+        _ -> true
+      end
 
     socket =
       socket
       |> assign(:room_code, room_code)
       |> assign(:user_id, user_id)
-      |> assign(:users, list_room_users(room_code))
+      |> assign(:users, users)
+      |> assign(:is_leader, first_user_leader_election)
       |> assign(current_state)
-      |> then(fn socket ->
-        # If the current track is non-nil, push event to the client
-        if connected?(socket) and current_state.selection.track do
-          push_event(socket, "update_track", %{track: current_state.selection.track})
-        else
-          socket
-        end
-      end)
 
-    {:ok, socket}
+    {:ok, push_event(socket, "spotify:load_track", %{track: current_state.selection.track})}
   end
 
   @impl true
@@ -59,14 +64,25 @@ defmodule PlingWeb.SessionLive do
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
     users = list_room_users(socket.assigns.room_code)
-    Logger.info("Presence update", event: :presence_change, user_count: length(users))
+
+    first_user_leader_election =
+      case users do
+        [%{user_id: first_user_id} | _] -> first_user_id == socket.assigns.user_id
+        _ -> false
+      end
 
     if users == [] do
-      Logger.info("Room empty, resetting state", event: :room_reset)
-      Pling.PlingServer.reset_state(socket.assigns.room_code)
+      case Registry.lookup(Pling.PlingServerRegistry, socket.assigns.room_code) do
+        [{pid, _}] ->
+          DynamicSupervisor.terminate_child(Pling.RoomSupervisor, pid)
+          Logger.info("Room empty, server terminated", event: :room_terminate)
+
+        [] ->
+          Logger.info("Room empty but server not found", event: :room_terminate)
+      end
     end
 
-    {:noreply, assign(socket, :users, users)}
+    {:noreply, assign(socket, users: users, is_leader: first_user_leader_election)}
   end
 
   # ------------------------------------------------------------------
@@ -155,13 +171,21 @@ defmodule PlingWeb.SessionLive do
   # Render
   # ------------------------------------------------------------------
   @impl true
+  @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
+    Logger.debug(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]),
+      pretty: true
+    )
+
     ~H"""
-    <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
-      <.room_info room_code={@room_code} users={@users} />
-      <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
-      <.counters red_count={@red_count} blue_count={@blue_count} />
-      <.playlist_grid selection={@selection} />
+    <div class="flex ">
+      <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]), pretty: true) %></pre>
+      <div class="w-1/2 mt-8 space-y-8 flex flex-col place-items-center">
+        <.room_info room_code={@room_code} users={@users} />
+        <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
+        <.counters red_count={@red_count} blue_count={@blue_count} />
+        <.playlist_grid selection={@selection} />
+      </div>
     </div>
     """
   end
@@ -232,10 +256,7 @@ defmodule PlingWeb.SessionLive do
       <button
         id={"#{@color}-counter-incr"}
         phx-hook="PlingCounter"
-        phx-click={
-          JS.push("counter:increment", value: %{color: @color})
-          |> JS.push("next_track")
-        }
+        phx-click={JS.push("counter:increment", value: %{color: @color})}
         class="pushable"
       >
         <span class="shadow"></span>
@@ -280,14 +301,11 @@ defmodule PlingWeb.SessionLive do
   end
 
   defp list_room_users(room_code) do
-    presence_data = topic(room_code) |> Presence.list()
-    user_count = map_size(presence_data)
-    Logger.info("Room users listed", event: :list_users, user_count: user_count)
-
-    presence_data
-    |> Map.keys()
-    |> Enum.map(fn user_id ->
-      %{user_id: user_id, joined_at: DateTime.utc_now()}
+    topic(room_code)
+    |> Presence.list()
+    |> Enum.map(fn {user_id, %{metas: [meta | _]}} ->
+      %{user_id: user_id, joined_at: meta.joined_at}
     end)
+    |> Enum.sort_by(& &1.joined_at)
   end
 end
