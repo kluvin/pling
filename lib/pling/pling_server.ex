@@ -33,10 +33,10 @@ defmodule Pling.PlingServer do
   def reset_state(room_code),
     do: GenServer.call(via_tuple(room_code), :reset_state)
 
-  def increment_counter(room_code, color),
+  def counter(:increment, room_code, color),
     do: GenServer.call(via_tuple(room_code), {:increment_counter, color})
 
-  def decrement_counter(room_code, color),
+  def counter(:decrement, room_code, color),
     do: GenServer.call(via_tuple(room_code), {:decrement_counter, color})
 
   # Timer-specific API
@@ -60,7 +60,7 @@ defmodule Pling.PlingServer do
     new_state =
       state
       |> Map.put(:playlists, playlists)
-      |> PlaylistService.update_track(state.selection.playlist)
+      |> PlaylistService.update_track()
 
     {:ok, new_state}
   end
@@ -110,22 +110,14 @@ defmodule Pling.PlingServer do
 
   @impl true
   def handle_call(:start_playback, _from, state) do
-    new_state =
-      state
-      |> PlaylistService.update_track()
-      |> Map.merge(%{
-        is_playing: true,
-        countdown: state.spotify_track_duration
-      })
-
+    new_state = PlaylistService.start_playback(state)
     Process.send_after(self(), :tick, 1000)
-
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:stop_playback, _from, state) do
-    new_state = %{state | is_playing: false, countdown: nil}
+    new_state = PlaylistService.stop_playback(state)
     {:reply, new_state, new_state}
   end
 
@@ -187,7 +179,7 @@ defmodule Pling.PlingServer do
 
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
-      "spotify_track_and_play",
+      "spotify:play_track",
       %{track: new_state.selection.track}
     )
 
@@ -236,16 +228,12 @@ defmodule Pling.PlingServer do
   defp maybe_start_new_track(%{is_playing: false} = state) do
     new_state =
       state
-      |> PlaylistService.update_track()
-      |> Map.merge(%{
-        is_playing: true,
-        countdown: state.spotify_track_duration
-      })
+      |> PlaylistService.start_playback()
       |> tap(&schedule_next_tick/1)
 
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
-      "spotify_track_and_play",
+      "spotify:play_track",
       %{track: new_state.selection.track}
     )
 

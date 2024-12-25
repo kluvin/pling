@@ -24,16 +24,31 @@ defmodule Pling.Services.PlaylistService do
 
   def random_track(tracks), do: Enum.random(tracks)
 
-  # Keep these as pure functions that return the new state
-  def update_track(state, playlist \\ nil) do
-    playlist = playlist || state.selection.playlist
-    track = random_track(get_tracks(state.playlists, playlist))
-    %{state | selection: %{playlist: playlist, track: track}}
+  def update_track(state) do
+    track =
+      state.playlists
+      |> get_tracks(state.selection.playlist)
+      |> random_track()
+
+    %{state | selection: %{playlist: state.selection.playlist, track: track}}
   end
 
   def set_playlist(state, playlist) do
-    state
-    |> update_track(playlist)
+    %{state | selection: %{playlist: playlist, track: nil}}
+    |> update_track()
     |> Map.merge(%{is_playing: false, countdown: nil})
+  end
+
+  def start_playback(state) do
+    state
+    |> update_track()
+    |> Map.merge(%{
+      is_playing: true,
+      countdown: state.spotify_track_duration
+    })
+  end
+
+  def stop_playback(state) do
+    Map.merge(state, %{is_playing: false, countdown: nil})
   end
 end

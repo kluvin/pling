@@ -99,12 +99,12 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   }, 0);
 };
 
-window.addEventListener("phx:spotify_play", (event) => {
+window.addEventListener("phx:spotify:play", (event) => {
   console.log("Playing Spotify");
   window.EmbedController.play();
 });
 
-window.addEventListener("phx:update_track", (event) => {
+window.addEventListener("phx:spotify:update_track", (event) => {
   console.log("Updating track to:", event.detail.track);
   const track = event.detail.track;
   window.EmbedController.loadUri(track);
@@ -114,10 +114,6 @@ window.addEventListener("phx:ring_bell", (_event) => {
   console.log("Playing bell sound");
   document.getElementById("bell").play();
 });
-
-// window.addEventListener("spotify-toggle", () => {
-//   window.EmbedController.togglePlay();
-// });
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
@@ -129,20 +125,17 @@ liveSocket.connect();
 window.liveSocket = liveSocket;
 
 // Add these event handlers
-window.addEventListener("phx:spotify_play", () => {
+window.addEventListener("phx:spotify:play", () => {
   document.querySelector(".embed-wrapper")?.classList.add("hidden");
 });
 
-window.addEventListener("phx:spotify_pause", () => {
+window.addEventListener("phx:spotify:pause", () => {
   document.querySelector(".embed-wrapper")?.classList.remove("hidden");
 });
 
-window.addEventListener("phx:spotify_track_and_play", (event) => {
+window.addEventListener("phx:spotify:play_track", (event) => {
   console.log("Updating track and playing:", event.detail.track);
   const track = event.detail.track;
   window.EmbedController.loadUri(track);
-  // Add small delay to ensure track loads before playing
-  setTimeout(() => {
-    window.EmbedController.play();
-  }, 100);
+  window.EmbedController.play();
 });

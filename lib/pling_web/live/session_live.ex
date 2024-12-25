@@ -75,46 +75,56 @@ defmodule PlingWeb.SessionLive do
 
   @impl true
   def handle_info(
-        %Phoenix.Socket.Broadcast{event: "spotify_track_and_play", payload: %{track: track}},
+        %Phoenix.Socket.Broadcast{event: "spotify:play_track", payload: %{track: track}},
         socket
       ) do
-    {:noreply, push_event(socket, "spotify_track_and_play", %{track: track})}
+    {:noreply, push_event(socket, "spotify:play_track", %{track: track})}
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "ring_bell"}, socket) do
     {:noreply, push_event(socket, "ring_bell", %{})}
   end
 
-  defp update_state_and_broadcast(socket, new_state) do
-    broadcast_state_update(socket.assigns.room_code, new_state)
-    assign(socket, new_state)
-  end
-
   defp push_client_events(socket, events) do
     Enum.reduce(events, socket, fn
-      {:update_track, track}, acc -> push_event(acc, "update_track", %{track: track})
-      {:spotify_play}, acc -> push_event(acc, "spotify_play", %{})
-      {:spotify_pause}, acc -> push_event(acc, "spotify_pause", %{})
-      :ring_bell, acc -> push_event(acc, "ring_bell", %{})
-      _, acc -> acc
+      {:spotify_update_track, track}, acc ->
+        push_event(acc, "spotify:update_track", %{track: track})
+
+      {:spotify_play}, acc ->
+        push_event(acc, "spotify:play", %{})
+
+      {:spotify_pause}, acc ->
+        push_event(acc, "spotify:pause", %{})
+
+      :ring_bell, acc ->
+        push_event(acc, "ring_bell", %{})
+
+      _, acc ->
+        acc
     end)
   end
 
   defp update_state_and_socket(socket, new_state, extra_events \\ []) do
+    Logger.info("State transition", event: :state_broadcast, state: new_state)
+
+    PlingWeb.Endpoint.broadcast(topic(socket.assigns.room_code), "state_update", %{
+      state: new_state
+    })
+
     socket
-    |> update_state_and_broadcast(new_state)
     |> push_client_events(extra_events)
+    |> assign(new_state)
   end
 
-  def handle_event("increment_counter", %{"color" => color}, socket) do
+  def handle_event("counter:increment", %{"color" => color}, socket) do
     Logger.info("Counter increment", event: :counter_increment, color: color)
-    new_state = Pling.PlingServer.increment_counter(socket.assigns.room_code, color)
+    new_state = Pling.PlingServer.counter(:increment, socket.assigns.room_code, color)
     {:noreply, update_state_and_socket(socket, new_state)}
   end
 
-  def handle_event("decrement_counter", %{"color" => color}, socket) do
+  def handle_event("counter:decrement", %{"color" => color}, socket) do
     Logger.info("Counter decrement", event: :counter_decrement, color: color)
-    new_state = Pling.PlingServer.decrement_counter(socket.assigns.room_code, color)
+    new_state = Pling.PlingServer.counter(:decrement, socket.assigns.room_code, color)
     {:noreply, update_state_and_socket(socket, new_state)}
   end
 
@@ -240,7 +250,7 @@ defmodule PlingWeb.SessionLive do
         id={"#{@color}-counter-incr"}
         phx-hook="PlingCounter"
         phx-click={
-          JS.push("increment_counter", value: %{color: @color})
+          JS.push("counter:increment", value: %{color: @color})
           |> JS.push("next_track")
         }
         class="pushable"
@@ -256,7 +266,7 @@ defmodule PlingWeb.SessionLive do
       </button>
       <button
         phx-hook="PlingCounter"
-        phx-click={JS.push("decrement_counter", value: %{color: @color})}
+        phx-click={JS.push("counter:decrement", value: %{color: @color})}
         id={"#{@color}-counter-decr"}
         class="pushable self-center"
       >
@@ -296,10 +306,5 @@ defmodule PlingWeb.SessionLive do
     |> Enum.map(fn user_id ->
       %{user_id: user_id, joined_at: DateTime.utc_now()}
     end)
-  end
-
-  defp broadcast_state_update(room_code, state) do
-    Logger.info("Broadcasting state update", event: :state_broadcast)
-    PlingWeb.Endpoint.broadcast(topic(room_code), "state_update", %{state: state})
   end
 end
