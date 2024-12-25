@@ -9,8 +9,8 @@ defmodule Pling.PlingServer do
     blue_count: 0,
     is_playing: false,
     countdown: nil,
-    timer_threshold: 10,
-    spotify_track_duration: 30,
+    timer_threshold: 30,
+    spotify_track_duration: 10,
     selection: %{playlist: "90s", track: nil},
     playlists: nil,
     room_code: nil
@@ -26,9 +26,6 @@ defmodule Pling.PlingServer do
   def get_state(room_code) do
     GenServer.call(via_tuple(room_code), :get_state)
   end
-
-  def update_state(room_code, new_state),
-    do: GenServer.cast(via_tuple(room_code), {:update_state, for_presence(new_state)})
 
   def reset_state(room_code),
     do: GenServer.call(via_tuple(room_code), :reset_state)
@@ -52,7 +49,10 @@ defmodule Pling.PlingServer do
   def set_playlist(room_code, playlist),
     do: GenServer.call(via_tuple(room_code), {:set_playlist, playlist})
 
+  # ------------------------------------------------------------------
   # Server Callbacks
+  # ------------------------------------------------------------------
+
   @impl true
   def init(state) do
     playlists = PlaylistService.load_playlists()
@@ -66,23 +66,12 @@ defmodule Pling.PlingServer do
   end
 
   @impl true
-  def handle_cast({:update_state, new_state}, _state) do
-    {:noreply, new_state}
-  end
-
-  @impl true
-  def handle_call({:set_playlist, playlist}, _from, state) do
-    new_state = PlaylistService.set_playlist(state, playlist)
-    {:reply, new_state, new_state}
-  end
-
-  @impl true
   def handle_call(:get_state, _from, state) do
     {:reply, state, state}
   end
 
   @impl true
-  def handle_call(:reset_state, _from, _state) do
+  def handle_call(:reset_state, _from, _old_state) do
     new_state = @initial_state
     broadcast(nil, new_state)
     {:reply, new_state, new_state}
@@ -95,6 +84,7 @@ defmodule Pling.PlingServer do
       |> CounterService.increment(color)
       |> maybe_start_new_track()
 
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
@@ -105,37 +95,58 @@ defmodule Pling.PlingServer do
       |> CounterService.decrement(color)
       |> maybe_start_new_track()
 
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:start_playback, _from, state) do
     new_state = PlaylistService.start_playback(state)
+    # Optionally schedule a tick
     Process.send_after(self(), :tick, 1000)
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:stop_playback, _from, state) do
     new_state = PlaylistService.stop_playback(state)
+    # Also ring the bell
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "ring_bell",
+      %{}
+    )
+
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:next_track, _from, state) do
     new_state = PlaylistService.update_track(state)
+    broadcast(state, new_state)
+    {:reply, new_state, new_state}
+  end
+
+  @impl true
+  def handle_call({:set_playlist, playlist}, _from, state) do
+    new_state = PlaylistService.set_playlist(state, playlist)
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:start_timer, _from, state) do
     new_state = %{state | is_playing: true, countdown: state.spotify_track_duration}
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
   @impl true
   def handle_call(:stop_timer, _from, state) do
     new_state = %{state | is_playing: false, countdown: nil}
+    broadcast(state, new_state)
     {:reply, new_state, new_state}
   end
 
@@ -152,6 +163,9 @@ defmodule Pling.PlingServer do
     {:reply, new_state, new_state}
   end
 
+  # ------------------------------------------------------------------
+  # Asynchronous Messages
+  # ------------------------------------------------------------------
   @impl true
   def handle_info(:tick, %{is_playing: false} = state), do: {:noreply, state}
   def handle_info(:tick, %{countdown: nil} = state), do: {:noreply, state}
@@ -166,7 +180,10 @@ defmodule Pling.PlingServer do
     {:noreply, new_state}
   end
 
-  # Private timer helpers
+  # ------------------------------------------------------------------
+  # Private Helpers
+  # ------------------------------------------------------------------
+
   defp handle_timer_timeout(state) do
     Logger.info("Changed track due to timeout")
 
@@ -189,13 +206,14 @@ defmodule Pling.PlingServer do
       %{}
     )
 
+    broadcast(state, new_state)
     new_state
   end
 
   defp update_countdown(state, new_countdown) do
     new_state = %{state | countdown: new_countdown}
-    broadcast(state, new_state)
     schedule_next_tick(new_state)
+    broadcast(state, new_state)
     new_state
   end
 
@@ -205,25 +223,6 @@ defmodule Pling.PlingServer do
   end
 
   defp schedule_next_tick(state), do: state
-
-  # State transformation helpers
-  defp for_presence(state) do
-    state
-    |> Map.take(Map.keys(@initial_state))
-    |> Map.update!(:selection, &Map.take(&1, [:track, :playlist]))
-  end
-
-  defp via_tuple(room_code) do
-    {:via, Registry, {Pling.PlingServerRegistry, room_code}}
-  end
-
-  defp broadcast(_old_state, new_state) do
-    PlingWeb.Endpoint.broadcast(
-      "pling:room:#{new_state.room_code}",
-      "state_update",
-      %{state: for_presence(new_state)}
-    )
-  end
 
   defp maybe_start_new_track(%{is_playing: false} = state) do
     new_state =
@@ -237,8 +236,29 @@ defmodule Pling.PlingServer do
       %{track: new_state.selection.track}
     )
 
+    broadcast(state, new_state)
     new_state
   end
 
   defp maybe_start_new_track(state), do: state
+
+  # Called whenever we have a new state to share with LiveView
+  defp broadcast(_old_state, new_state) do
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "state_update",
+      %{state: for_presence(new_state)}
+    )
+  end
+
+  defp for_presence(state) do
+    # Restrict to certain fields for the front-end
+    state
+    |> Map.take(Map.keys(@initial_state))
+    |> Map.update!(:selection, &Map.take(&1, [:track, :playlist]))
+  end
+
+  defp via_tuple(room_code) do
+    {:via, Registry, {Pling.PlingServerRegistry, room_code}}
+  end
 end

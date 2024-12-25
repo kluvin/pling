@@ -34,9 +34,19 @@ defmodule Pling.Services.PlaylistService do
   end
 
   def set_playlist(state, playlist) do
-    %{state | selection: %{playlist: playlist, track: nil}}
-    |> update_track()
-    |> Map.merge(%{is_playing: false, countdown: nil})
+    new_state =
+      %{state | selection: %{playlist: playlist, track: nil}}
+      |> update_track()
+      |> Map.merge(%{is_playing: false, countdown: nil})
+
+    # Broadcast the new track to clients
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{new_state.room_code}",
+      "spotify:load_track",
+      %{track: new_state.selection.track}
+    )
+
+    new_state
   end
 
   def start_playback(state) do

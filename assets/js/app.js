@@ -1,23 +1,6 @@
-// If you want to use Phoenix channels, run `mix help phx.gen.channel`
-// to get started and then uncomment the line below.
-// import "./user_socket.js"
+// assets/js/app.js
 
-// You can include dependencies in two ways.
-//
-// The simplest option is to put them in assets/vendor and
-// import them using relative paths:
-//
-//     import "../vendor/some-package.js"
-//
-// Alternatively, you can `npm install some-package --prefix assets` and import
-// them using a path starting with the package name:
-//
-//     import "some-package"
-//
-
-// Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html";
-// Establish Phoenix Socket and LiveView configuration.
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import topbar from "../vendor/topbar";
@@ -29,16 +12,15 @@ let csrfToken = document
 let Hooks = {
   PlingCounter: {
     togglePlay() {
-      // this.pushEvent("toggle_play");
-      window.EmbedController.togglePlay();
+      // This calls a function on the Spotify IFrame Embed (global)
+      window.EmbedController?.togglePlay();
     },
 
     mounted() {
       this.el.addEventListener("pointerdown", () => {
-        console.log("new point new track");
-        // Push event and wait for response before toggling play
-        this.pushEvent("load_new_track", {}, (reply) => {
-          console.log("got a track, replying");
+        // We push a "load_new_track" event to the server,
+        // then in the callback, we attempt toggling the local embed player.
+        this.pushEvent("load_new_track", {}, (_reply) => {
           this.togglePlay();
         });
       });
@@ -48,7 +30,7 @@ let Hooks = {
   PlingButton: {
     togglePlay() {
       this.pushEvent("toggle_play");
-      window.EmbedController.togglePlay();
+      window.EmbedController?.togglePlay();
     },
 
     mounted() {
@@ -64,7 +46,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
 });
 
 // Show progress bar on live navigation and form submits
-topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" });
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0,0,0,.3)" });
 window.addEventListener("phx:page-loading-start", (_info) => topbar.show(300));
 window.addEventListener("phx:page-loading-stop", (_info) => topbar.hide());
 
@@ -76,19 +58,13 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     return;
   }
 
-  // Get initial track from the data attribute
   const initialTrack = element.getAttribute("data-initial-track");
-
   const callback = (EmbedController) => {
     console.log("Spotify Embed Controller initialized");
     window.EmbedController = EmbedController;
-    // Try to initialize playback state
-    EmbedController.play().catch((e) =>
-      console.log("Initial play attempt:", e)
-    );
   };
 
-  options = {
+  let options = {
     uri: initialTrack || "spotify:track:3SFXsFpeGmBTtQvKiwYMDA",
     theme: "dark",
   };
@@ -99,43 +75,26 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   }, 0);
 };
 
-window.addEventListener("phx:spotify:play", (event) => {
-  console.log("Playing Spotify");
-  window.EmbedController.play();
+// Listen for server broadcasts via LiveView -> pushEvent
+window.addEventListener("phx:spotify:play_track", (event) => {
+  console.log("Playing track:", event.detail.track);
+  const track = event.detail.track;
+  window.EmbedController?.loadUri(track);
+  window.EmbedController?.play();
 });
 
-window.addEventListener("phx:spotify:update_track", (event) => {
-  console.log("Updating track to:", event.detail.track);
+window.addEventListener("phx:spotify:load_track", (event) => {
+  console.log("Loading track:", event.detail.track);
   const track = event.detail.track;
-  window.EmbedController.loadUri(track);
+  window.EmbedController?.loadUri(track);
 });
 
 window.addEventListener("phx:ring_bell", (_event) => {
   console.log("Playing bell sound");
-  document.getElementById("bell").play();
+  document.getElementById("bell")?.play();
 });
 
 // connect if there are any LiveViews on the page
 liveSocket.connect();
 
-// expose liveSocket on window for web console debug logs and latency simulation:
-// >> liveSocket.enableDebug()
-// >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
-// >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
-
-// Add these event handlers
-window.addEventListener("phx:spotify:play", () => {
-  document.querySelector(".embed-wrapper")?.classList.add("hidden");
-});
-
-window.addEventListener("phx:spotify:pause", () => {
-  document.querySelector(".embed-wrapper")?.classList.remove("hidden");
-});
-
-window.addEventListener("phx:spotify:play_track", (event) => {
-  console.log("Updating track and playing:", event.detail.track);
-  const track = event.detail.track;
-  window.EmbedController.loadUri(track);
-  window.EmbedController.play();
-});
