@@ -48,7 +48,9 @@ defmodule PlingWeb.SessionLive do
       |> assign(:room_code, room_code)
       |> assign(:user_id, user_id)
       |> assign(:users, users)
+      |> assign(:show, users)
       |> assign(:is_leader, first_user_leader_election)
+      |> assign(:show_playlist, false)
       |> assign(current_state)
 
     {:ok, push_event(socket, "spotify:load_track", %{track: current_state.selection.track})}
@@ -181,7 +183,7 @@ defmodule PlingWeb.SessionLive do
     assigns = assign_new(assigns, :show_playlist, fn -> false end)
 
     ~H"""
-    <div class="w-full min-h-[800px] mt-2 space-y-4 flex flex-col place-items-center">
+    <div class="w-full flex flex-col h-dvh py-4 justify-between">
       <.room_info room_code={@room_code} users={@users} />
       <.pling_button
         is_playing={@is_playing}
@@ -189,28 +191,33 @@ defmodule PlingWeb.SessionLive do
         timer_threshold={@timer_threshold}
       />
 
-      <%= if @show_playlist do %>
-        <.playlist_grid selection={@selection} />
-      <% else %>
-        <div class="flex flex-col items-center relative top-32">
-          <.icon
-            :if={!@is_playing}
-            name="hero-chevron-double-up-solid"
-            class="h-16 w-16 text-zinc-800"
-          />
-          <p :if={!@is_playing} class="text-sm font-semibold text-zinc-600">
-            swipe to see song
-          </p>
-        </div>
-        <.counters red_count={@red_count} blue_count={@blue_count} />
-        <button
+      <div class="grid grid-cols-3 w-full space-y-4 place-items-center">
+        <%= if @show_playlist do %>
+          <.playlist_grid selection={@selection} />
+        <% else %>
+          <.counter_button color="red" red_count={@red_count} blue_count={@blue_count} />
+
+          <div class="flex flex-col items-center">
+            <.icon
+              :if={!@is_playing}
+              name="hero-chevron-double-up-solid"
+              class="h-16 w-16 text-zinc-700"
+            />
+            <p :if={!@is_playing} class="text-sm text-center font-semibold text-zinc-700">
+              swipe to see song
+            </p>
+          </div>
+
+          <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
+        <% end %>
+        <.button
           :if={!@is_playing}
           phx-click="toggle_playlist"
-          class="text-sm font-semibold text-zinc-600 hover:text-zinc-800"
+          class="col-span-3 text-sm font-semibold"
         >
-          <%= if @show_playlist, do: "hide playlist", else: "show playlist" %>
-        </button>
-      <% end %>
+          <%= if @show_playlist, do: "hide playlists", else: "show playlists" %>
+        </.button>
+      </div>
     </div>
     """
   end
@@ -253,15 +260,6 @@ defmodule PlingWeb.SessionLive do
         <span class="edge bg-red-800"></span>
         <span class="front bg-gradient-to-b from-red-500 to-red-600"></span>
       </button>
-    </div>
-    """
-  end
-
-  defp counters(assigns) do
-    ~H"""
-    <div class="flex w-full justify-between">
-      <.counter_button color="red" red_count={@red_count} blue_count={@blue_count} />
-      <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
     </div>
     """
   end
@@ -319,7 +317,7 @@ defmodule PlingWeb.SessionLive do
 
   defp playlist_grid(assigns) do
     ~H"""
-    <div class="grid grid-cols-3 place-items-center gap-4 rounded w-full">
+    <div class="col-span-3 grid grid-cols-3 place-items-center gap-4 rounded w-full">
       <.playlist decade="50s" active?={@selection.playlist == "50s"} />
       <.playlist decade="60s" active?={@selection.playlist == "60s"} />
       <.playlist decade="70s" active?={@selection.playlist == "70s"} />
