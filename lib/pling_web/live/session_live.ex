@@ -16,14 +16,15 @@ defmodule PlingWeb.SessionLive do
     if connected?(socket) do
       topic = topic(room_code)
 
-      # Start the room server and get its pid
-      {:ok, pid} =
-        DynamicSupervisor.start_child(
-          Pling.RoomSupervisor,
-          {PlingServer, room_code}
-        )
+      server_pid =
+        Pling.PlingServerRegistry
+        |> Registry.lookup(room_code)
+        |> case do
+          [{pid, _}] -> pid
+          [] -> start_room_server(room_code)
+        end
 
-      send(pid, {:monitor_liveview, self()})
+      send(server_pid, {:monitor_liveview, self()})
 
       Presence.track(self(), topic, user_id, %{
         user_id: user_id,
@@ -307,5 +308,16 @@ defmodule PlingWeb.SessionLive do
       %{user_id: user_id, joined_at: meta.joined_at}
     end)
     |> Enum.sort_by(& &1.joined_at)
+  end
+
+  # Helper function to start a new room server
+  defp start_room_server(room_code) do
+    {:ok, pid} =
+      DynamicSupervisor.start_child(
+        Pling.RoomSupervisor,
+        {PlingServer, room_code}
+      )
+
+    pid
   end
 end
