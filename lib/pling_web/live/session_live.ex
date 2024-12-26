@@ -183,7 +183,7 @@ defmodule PlingWeb.SessionLive do
     assigns = assign_new(assigns, :show_playlist, fn -> false end)
 
     ~H"""
-    <div class="w-full flex flex-col h-dvh py-4 justify-between">
+    <div class="w-full flex flex-col h-dvh space-y-4 py-4 justify-between">
       <.room_info room_code={@room_code} users={@users} />
       <.pling_button
         is_playing={@is_playing}
@@ -210,11 +210,7 @@ defmodule PlingWeb.SessionLive do
 
           <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
         <% end %>
-        <.button
-          :if={!@is_playing}
-          phx-click="toggle_playlist"
-          class="col-span-3 text-sm font-semibold"
-        >
+        <.button phx-click="toggle_playlist" class="col-span-3 text-sm font-semibold">
           <%= if @show_playlist, do: "hide playlists", else: "show playlists" %>
         </.button>
       </div>
@@ -242,7 +238,7 @@ defmodule PlingWeb.SessionLive do
 
   def pling_button(assigns) do
     ~H"""
-    <div id="start" phx-hook="PlingButton" class="flex place-content-center w-screen px-12">
+    <div id="start" phx-hook="PlingButton" class="flex place-content-center w-full">
       <button class="pushable relative grid place-items-center">
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= cond do %>
