@@ -183,7 +183,11 @@ defmodule PlingWeb.SessionLive do
       <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]), pretty: true) %></pre>
       <div class="w-1/2 mt-8 space-y-8 flex flex-col place-items-center">
         <.room_info room_code={@room_code} users={@users} />
-        <.pling_button countdown={@countdown} timer_threshold={@timer_threshold} />
+        <.pling_button
+          is_playing={@is_playing}
+          countdown={@countdown}
+          timer_threshold={@timer_threshold}
+        />
         <.counters red_count={@red_count} blue_count={@blue_count} />
         <.playlist_grid selection={@selection} />
       </div>
@@ -214,7 +218,14 @@ defmodule PlingWeb.SessionLive do
     <div id="start" phx-hook="PlingButton" class="flex place-content-center w-screen px-12">
       <button class="pushable relative grid place-items-center">
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
-          <%= if @countdown && @countdown <= @timer_threshold, do: @countdown, else: "PLING" %>
+          <%= cond do %>
+            <% @countdown && @countdown <= @timer_threshold -> %>
+              <%= @countdown %>
+            <% @is_playing -> %>
+              PLING
+            <% true -> %>
+              PLAY
+          <% end %>
         </h1>
         <audio id="bell">
           <source src={~p"/audio/bell.mp3"} type="audio/mp3" />
