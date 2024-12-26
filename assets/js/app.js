@@ -92,6 +92,11 @@ window.addEventListener("phx:ring_bell", (_event) => {
   document.getElementById("bell")?.play();
 });
 
+window.addEventListener("popstate", (_event) => {
+  console.log("Browser back detected - pausing player");
+  window.EmbedController?.pause();
+});
+
 // connect if there are any LiveViews on the page
 liveSocket.connect();
 
