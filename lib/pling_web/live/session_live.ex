@@ -168,28 +168,49 @@ defmodule PlingWeb.SessionLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("toggle_playlist", _params, socket) do
+    {:noreply, update(socket, :show_playlist, &(!&1))}
+  end
+
   # ------------------------------------------------------------------
   # Render
   # ------------------------------------------------------------------
   @impl true
-  @spec render(any()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
-    Logger.debug(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]),
-      pretty: true
-    )
+    assigns = assign_new(assigns, :show_playlist, fn -> false end)
 
     ~H"""
-    <%!-- todo, enable me in dev mode --%>
-    <%!-- <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]), pretty: true) %></pre> --%>
-    <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
+    <div class="w-full min-h-[800px] mt-2 space-y-4 flex flex-col place-items-center">
       <.room_info room_code={@room_code} users={@users} />
       <.pling_button
         is_playing={@is_playing}
         countdown={@countdown}
         timer_threshold={@timer_threshold}
       />
-      <.counters red_count={@red_count} blue_count={@blue_count} />
-      <.playlist_grid selection={@selection} />
+
+      <%= if @show_playlist do %>
+        <.playlist_grid selection={@selection} />
+      <% else %>
+        <div class="flex flex-col items-center relative top-32">
+          <.icon
+            :if={!@is_playing}
+            name="hero-chevron-double-up-solid"
+            class="h-16 w-16 text-zinc-800"
+          />
+          <p :if={!@is_playing} class="text-sm font-semibold text-zinc-600">
+            swipe to see song
+          </p>
+        </div>
+        <.counters red_count={@red_count} blue_count={@blue_count} />
+        <button
+          :if={!@is_playing}
+          phx-click="toggle_playlist"
+          class="text-sm font-semibold text-zinc-600 hover:text-zinc-800"
+        >
+          <%= if @show_playlist, do: "hide playlist", else: "show playlist" %>
+        </button>
+      <% end %>
     </div>
     """
   end

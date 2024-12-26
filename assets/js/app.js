@@ -13,6 +13,10 @@ let Hooks = {
   PlingButton: {
     togglePlay() {
       window.EmbedController?.togglePlay();
+      const wrapper = document.querySelector(".embed-wrapper");
+      if (wrapper) {
+        wrapper.classList.toggle("hidden");
+      }
       this.pushEvent("toggle_play");
     },
 
