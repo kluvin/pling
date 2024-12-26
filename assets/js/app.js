@@ -10,25 +10,10 @@ let csrfToken = document
   .getAttribute("content");
 
 let Hooks = {
-  PlingCounter: {
-    togglePlay() {
-      // This calls a function on the Spotify IFrame Embed (global)
-      window.EmbedController?.togglePlay();
-    },
-
-    mounted() {
-      this.el.addEventListener("pointerdown", () => {
-        this.pushEvent("load_new_track", {}, (_reply) => {
-          this.togglePlay();
-        });
-      });
-    },
-  },
-
   PlingButton: {
     togglePlay() {
-      this.pushEvent("toggle_play");
       window.EmbedController?.togglePlay();
+      this.pushEvent("toggle_play");
     },
 
     mounted() {

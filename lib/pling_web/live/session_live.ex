@@ -267,7 +267,6 @@ defmodule PlingWeb.SessionLive do
     <div class="relative flex flex-col items-center gap-4">
       <button
         id={"#{@color}-counter-incr"}
-        phx-hook="PlingCounter"
         phx-click={JS.push("counter:increment", value: %{color: @color})}
         class="pushable"
       >
@@ -281,7 +280,6 @@ defmodule PlingWeb.SessionLive do
         </span>
       </button>
       <button
-        phx-hook="PlingCounter"
         phx-click={JS.push("counter:decrement", value: %{color: @color})}
         id={"#{@color}-counter-decr"}
         class="pushable self-center"

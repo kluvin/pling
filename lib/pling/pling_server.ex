@@ -83,7 +83,7 @@ defmodule Pling.PlingServer do
     new_state =
       state
       |> CounterService.increment(color)
-      |> maybe_start_new_track()
+      |> load_new_track()
 
     broadcast(state, new_state)
     {:reply, new_state, new_state}
@@ -94,7 +94,7 @@ defmodule Pling.PlingServer do
     new_state =
       state
       |> CounterService.decrement(color)
-      |> maybe_start_new_track()
+      |> load_new_track()
 
     broadcast(state, new_state)
     {:reply, new_state, new_state}
@@ -192,13 +192,7 @@ defmodule Pling.PlingServer do
       state
       |> PlaylistService.update_track()
       |> Map.put(:countdown, state.spotify_track_duration)
-      |> Map.put(:is_playing, true)
-
-    PlingWeb.Endpoint.broadcast(
-      "pling:room:#{new_state.room_code}",
-      "spotify:play_track",
-      %{track: new_state.selection.track}
-    )
+      |> Map.put(:is_playing, false)
 
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
@@ -224,15 +218,12 @@ defmodule Pling.PlingServer do
 
   defp schedule_next_tick(state), do: state
 
-  defp maybe_start_new_track(%{is_playing: false} = state) do
-    new_state =
-      state
-      |> PlaylistService.start_playback()
-      |> tap(&schedule_next_tick/1)
+  defp load_new_track(%{is_playing: false} = state) do
+    new_state = PlaylistService.update_track(state)
 
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{new_state.room_code}",
-      "spotify:play_track",
+      "spotify:load_track",
       %{track: new_state.selection.track}
     )
 
@@ -240,7 +231,7 @@ defmodule Pling.PlingServer do
     new_state
   end
 
-  defp maybe_start_new_track(state), do: state
+  defp load_new_track(state), do: state
 
   # Called whenever we have a new state to share with LiveView
   defp broadcast(_old_state, new_state) do
