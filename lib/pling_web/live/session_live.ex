@@ -179,18 +179,17 @@ defmodule PlingWeb.SessionLive do
     )
 
     ~H"""
-    <div class="flex ">
-      <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]), pretty: true) %></pre>
-      <div class="w-1/2 mt-8 space-y-8 flex flex-col place-items-center">
-        <.room_info room_code={@room_code} users={@users} />
-        <.pling_button
-          is_playing={@is_playing}
-          countdown={@countdown}
-          timer_threshold={@timer_threshold}
-        />
-        <.counters red_count={@red_count} blue_count={@blue_count} />
-        <.playlist_grid selection={@selection} />
-      </div>
+    <%!-- todo, enable me in dev mode --%>
+    <%!-- <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :is_playing, :__changed__]), pretty: true) %></pre> --%>
+    <div class="w-full mt-8 space-y-8 flex flex-col place-items-center">
+      <.room_info room_code={@room_code} users={@users} />
+      <.pling_button
+        is_playing={@is_playing}
+        countdown={@countdown}
+        timer_threshold={@timer_threshold}
+      />
+      <.counters red_count={@red_count} blue_count={@blue_count} />
+      <.playlist_grid selection={@selection} />
     </div>
     """
   end
