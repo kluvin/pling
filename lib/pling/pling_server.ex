@@ -181,6 +181,47 @@ defmodule Pling.PlingServer do
     {:noreply, new_state}
   end
 
+  # Monitor LiveView process
+  @impl true
+  def handle_info({:monitor_liveview, pid}, state) do
+    # Register client in the Registry instead of state
+    Registry.register(Pling.ClientRegistry, state.room_code, pid)
+    # Still monitor for cleanup
+    Process.monitor(pid)
+
+    client_count = count_clients(state.room_code)
+
+    Logger.info("LiveView connected",
+      event: :liveview_monitor,
+      pid: inspect(pid),
+      connection_count: client_count
+    )
+
+    {:noreply, state}
+  end
+
+  # Handle LiveView process termination
+  @impl true
+  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
+    client_count = count_clients(state.room_code)
+
+    Logger.info("LiveView disconnected",
+      event: :liveview_down,
+      pid: inspect(pid),
+      reason: reason,
+      # One is about to be removed
+      connection_count: client_count - 1
+    )
+
+    # Count includes the process that's terminating
+    if client_count <= 1 do
+      Logger.info("No more connections, terminating", event: :server_terminate)
+      {:stop, :normal, state}
+    else
+      {:noreply, state}
+    end
+  end
+
   # ------------------------------------------------------------------
   # Private Helpers
   # ------------------------------------------------------------------
@@ -255,47 +296,6 @@ defmodule Pling.PlingServer do
 
   def via_tuple(room_code) do
     {:via, Registry, {Pling.PlingServerRegistry, room_code}}
-  end
-
-  # Monitor LiveView process
-  @impl true
-  def handle_info({:monitor_liveview, pid}, state) do
-    # Register client in the Registry instead of state
-    Registry.register(Pling.ClientRegistry, state.room_code, pid)
-    # Still monitor for cleanup
-    Process.monitor(pid)
-
-    client_count = count_clients(state.room_code)
-
-    Logger.info("LiveView connected",
-      event: :liveview_monitor,
-      pid: inspect(pid),
-      connection_count: client_count
-    )
-
-    {:noreply, state}
-  end
-
-  # Handle LiveView process termination
-  @impl true
-  def handle_info({:DOWN, _ref, :process, pid, reason}, state) do
-    client_count = count_clients(state.room_code)
-
-    Logger.info("LiveView disconnected",
-      event: :liveview_down,
-      pid: inspect(pid),
-      reason: reason,
-      # One is about to be removed
-      connection_count: client_count - 1
-    )
-
-    # Count includes the process that's terminating
-    if client_count <= 1 do
-      Logger.info("No more connections, terminating", event: :server_terminate)
-      {:stop, :normal, state}
-    else
-      {:noreply, state}
-    end
   end
 
   defp count_clients(room_code) do
