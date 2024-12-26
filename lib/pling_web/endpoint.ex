@@ -25,6 +25,8 @@ defmodule PlingWeb.Endpoint do
     gzip: false,
     only: PlingWeb.static_paths()
 
+  plug PhoenixAnalytics.Plugs.RequestTracker
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
