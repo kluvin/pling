@@ -2,12 +2,14 @@ defmodule Pling.Rooms.Playback do
   @moduledoc """
   Manages playback state for rooms.
   """
-  alias Pling.Rooms.{RoomServer, PlaybackManager}
+  alias Pling.Rooms.{RoomServer, PlaybackManager, Broadcaster}
 
   def start_playback(room_code) do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.start_playback(state) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
+      {:ok, new_state}
     end
   end
 
@@ -15,6 +17,8 @@ defmodule Pling.Rooms.Playback do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.stop_playback(state) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
+      {:ok, new_state}
     end
   end
 
@@ -22,6 +26,8 @@ defmodule Pling.Rooms.Playback do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.tick(state) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
+      {:ok, new_state}
     end
   end
 
@@ -29,6 +35,7 @@ defmodule Pling.Rooms.Playback do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.handle_track_timeout(state) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
     end
   end
 
@@ -36,6 +43,7 @@ defmodule Pling.Rooms.Playback do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.change_playlist(state, playlist) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
     end
   end
 
@@ -43,6 +51,7 @@ defmodule Pling.Rooms.Playback do
     with state <- RoomServer.get_state(room_code),
          new_state <- PlaybackManager.update_track(state) do
       RoomServer.update_state(room_code, new_state)
+      Broadcaster.broadcast_state_transition(room_code, new_state)
     end
   end
 end

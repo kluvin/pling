@@ -22,6 +22,7 @@ defmodule Pling.Rooms do
   defdelegate next_track(room_code), to: Playback
   defdelegate set_playlist(room_code, playlist), to: Playback
   defdelegate handle_track_timeout(room_code), to: Playback
+  defdelegate handle_tick(room_code), to: Playback
 
   # Delegate to RoomManagement context
   defdelegate monitor_liveview(room_code, pid), to: RoomManagement

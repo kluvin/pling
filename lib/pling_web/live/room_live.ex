@@ -48,16 +48,9 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_info(%{event: "tick", payload: %{countdown: countdown}}, socket) do
-    {:noreply, assign(socket, :countdown, countdown)}
-  end
-
-  @impl true
-  def handle_info(
-        %Phoenix.Socket.Broadcast{event: "spotify:play_track", payload: %{track: track}},
-        socket
-      ) do
-    {:noreply, push_event(socket, "spotify:play_track", %{track: track})}
+  def handle_info(:tick, socket) do
+    Rooms.Playback.handle_tick(socket.assigns.room_code)
+    {:noreply, socket}
   end
 
   @impl true
@@ -67,9 +60,9 @@ defmodule PlingWeb.RoomLive do
 
   @impl true
   def handle_info(
-        %Phoenix.Socket.Broadcast{event: "spotify:load_track", payload: %{track: track}},
-        socket
-      ) do
+    %Phoenix.Socket.Broadcast{event: "spotify:load_track", payload: %{track: track}},
+    socket
+  ) do
     {:noreply, push_event(socket, "spotify:load_track", %{track: track})}
   end
 

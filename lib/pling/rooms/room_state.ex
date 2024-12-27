@@ -27,7 +27,8 @@ defmodule Pling.Rooms.RoomState do
       is_playing: state.is_playing,
       countdown: state.countdown,
       timer_threshold: state.timer_threshold,
-      selection: Map.take(state.selection, [:track, :playlist])
+      selection: Map.take(state.selection, [:track, :playlist]),
+      playlists: state.playlists
     }
   end
 end

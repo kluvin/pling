@@ -4,18 +4,18 @@ defmodule Pling.Rooms.Broadcaster do
   """
 
   def broadcast_track_load(room_code, track) do
-    Phoenix.PubSub.broadcast(
-      Pling.PubSub,
-      "room:#{room_code}",
-      {:track_loaded, track}
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{room_code}",
+      "spotify:load_track",
+      %{track: track}
     )
   end
 
   def broadcast_playback_stop(room_code) do
-    Phoenix.PubSub.broadcast(
-      Pling.PubSub,
-      "room:#{room_code}",
-      :playback_stopped
+    PlingWeb.Endpoint.broadcast(
+      "pling:room:#{room_code}",
+      "state_update",
+      %{state: Pling.Rooms.get_state(room_code)}
     )
   end
 

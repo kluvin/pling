@@ -4,6 +4,7 @@ defmodule Pling.Rooms.PlaybackManager do
   """
 
   alias Pling.Rooms.{MusicLibrary, Broadcaster}
+  require Logger
 
   def initialize_playlists(state) do
     Map.put(state, :playlists, MusicLibrary.load_playlists())
@@ -11,13 +12,15 @@ defmodule Pling.Rooms.PlaybackManager do
 
   def update_track(state) do
     track = MusicLibrary.select_track(state.playlists, state.selection.playlist)
-    new_state = %{state | selection: %{playlist: state.selection.playlist, track: track}}
+    Logger.info("Loading new track: #{inspect(track)} for room: #{state.room_code}")
 
+    new_state = %{state | selection: %{playlist: state.selection.playlist, track: track}}
     Broadcaster.broadcast_track_load(state.room_code, track)
     new_state
   end
 
   def change_playlist(state, playlist) do
+    Logger.info("Changing playlist to: #{playlist} for room: #{state.room_code}")
     state
     |> Map.put(:selection, %{playlist: playlist, track: nil})
     |> update_track()
@@ -25,6 +28,7 @@ defmodule Pling.Rooms.PlaybackManager do
   end
 
   def start_playback(state) do
+    Logger.info("Starting playback for room: #{state.room_code}")
     new_state = %{state |
       is_playing: true,
       countdown: state.spotify_track_duration
@@ -33,6 +37,7 @@ defmodule Pling.Rooms.PlaybackManager do
   end
 
   def stop_playback(state) do
+    Logger.info("Stopping playback for room: #{state.room_code}")
     cancel_timer(state)
     Broadcaster.broadcast_playback_stop(state.room_code)
     Broadcaster.broadcast_bell(state.room_code)
@@ -60,6 +65,7 @@ defmodule Pling.Rooms.PlaybackManager do
   end
 
   defp handle_timeout(state) do
+    Logger.info("Track timeout for room: #{state.room_code}")
     new_state =
       state
       |> update_track()
