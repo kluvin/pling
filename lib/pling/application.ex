@@ -19,10 +19,10 @@ defmodule Pling.Application do
       # Start a worker by calling: Pling.Worker.start_link(arg)
       # {Pling.Worker, arg},
       # Start to serve requests, typically the last entry
-      PlingWeb.Presence,
+      Pling.Presence,
       PlingWeb.Endpoint,
-      {Registry, keys: :unique, name: Pling.PlingServerRegistry},
-      {Registry, keys: :duplicate, name: Pling.ClientRegistry},
+      {Registry, keys: :unique, name: Pling.Rooms.ServerRegistry},
+      {Registry, keys: :duplicate, name: Pling.Rooms.ClientRegistry},
       {DynamicSupervisor, name: Pling.RoomSupervisor}
     ]
 

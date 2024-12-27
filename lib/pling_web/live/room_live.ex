@@ -1,59 +1,27 @@
-defmodule PlingWeb.SessionLive do
+defmodule PlingWeb.RoomLive do
   use PlingWeb, :live_view
   import PlingWeb.Components.PlaylistSelector
   alias Phoenix.LiveView.JS
-  alias PlingWeb.Presence
-  alias Pling.PlingServer
-  require Logger
-
-  def topic(room_code), do: "pling:room:#{room_code}"
+  alias Pling.Rooms
 
   @impl true
   def mount(%{"room_code" => room_code}, %{"user_id" => user_id}, socket) do
-    Logger.metadata(room_code: room_code, user_id: user_id)
-    Logger.info("User joining room", event: :room_join)
+    socket = assign(socket,
+      room_code: room_code,
+      user_id: user_id,
+      show_playlist: false
+    )
 
     if connected?(socket) do
-      topic = topic(room_code)
+      {:ok, state} = Rooms.join_room(room_code, user_id, self())
 
-      server_pid =
-        Pling.PlingServerRegistry
-        |> Registry.lookup(room_code)
-        |> case do
-          [{pid, _}] -> pid
-          [] -> start_room_server(room_code)
-        end
-
-      send(server_pid, {:monitor_liveview, self()})
-
-      Presence.track(self(), topic, user_id, %{
-        user_id: user_id,
-        joined_at: DateTime.utc_now()
-      })
-
-      PlingWeb.Endpoint.subscribe(topic)
+      {:ok,
+       socket
+       |> assign(state)
+       |> push_event("spotify:load_track", %{track: state.selection.track})}
+    else
+      {:ok, assign(socket, Rooms.get_state(room_code))}
     end
-
-    current_state = Pling.PlingServer.get_state(room_code)
-    users = list_room_users(room_code)
-
-    first_user_leader_election =
-      case users do
-        [%{user_id: first_user_id} | _] -> first_user_id == user_id
-        _ -> true
-      end
-
-    socket =
-      socket
-      |> assign(:room_code, room_code)
-      |> assign(:user_id, user_id)
-      |> assign(:users, users)
-      |> assign(:show, users)
-      |> assign(:is_leader, first_user_leader_election)
-      |> assign(:show_playlist, false)
-      |> assign(current_state)
-
-    {:ok, push_event(socket, "spotify:load_track", %{track: current_state.selection.track})}
   end
 
   @impl true
@@ -66,26 +34,9 @@ defmodule PlingWeb.SessionLive do
   # ------------------------------------------------------------------
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
-    users = list_room_users(socket.assigns.room_code)
+    {users, is_leader} = Rooms.update_presence(socket.assigns.room_code, socket.assigns.user_id)
 
-    first_user_leader_election =
-      case users do
-        [%{user_id: first_user_id} | _] -> first_user_id == socket.assigns.user_id
-        _ -> false
-      end
-
-    if users == [] do
-      case Registry.lookup(Pling.PlingServerRegistry, socket.assigns.room_code) do
-        [{pid, _}] ->
-          DynamicSupervisor.terminate_child(Pling.RoomSupervisor, pid)
-          Logger.info("Room empty, server terminated", event: :room_terminate)
-
-        [] ->
-          Logger.info("Room empty but server not found", event: :room_terminate)
-      end
-    end
-
-    {:noreply, assign(socket, users: users, is_leader: first_user_leader_election)}
+    {:noreply, assign(socket, users: users, is_leader: is_leader)}
   end
 
   # ------------------------------------------------------------------
@@ -122,37 +73,33 @@ defmodule PlingWeb.SessionLive do
     {:noreply, push_event(socket, "spotify:load_track", %{track: track})}
   end
 
+
   # ------------------------------------------------------------------
   # UI Events -> Server Calls
   # ------------------------------------------------------------------
   @impl true
   def handle_event("counter:increment", %{"color" => color}, socket) do
-    Logger.info("Counter increment", event: :counter_increment, color: color)
-    Pling.PlingServer.counter(:increment, socket.assigns.room_code, color)
+    Rooms.update_counter(:increment, socket.assigns.room_code, color)
     {:noreply, socket}
   end
 
   def handle_event("counter:decrement", %{"color" => color}, socket) do
-    Logger.info("Counter decrement", event: :counter_decrement, color: color)
-    Pling.PlingServer.counter(:decrement, socket.assigns.room_code, color)
+    Rooms.update_counter(:decrement, socket.assigns.room_code, color)
     {:noreply, socket}
   end
 
   def handle_event("set_playlist", %{"decade" => decade}, socket) do
-    Logger.info("Playlist change", event: :playlist_change, decade: decade)
-    Pling.PlingServer.set_playlist(socket.assigns.room_code, decade)
+    Rooms.set_playlist(socket.assigns.room_code, decade)
     {:noreply, socket}
   end
 
   def handle_event("toggle_play", _params, socket) do
-    current_state = Pling.PlingServer.get_state(socket.assigns.room_code)
+    current_state = Rooms.get_state(socket.assigns.room_code)
 
     if current_state.is_playing do
-      Logger.info("Stopping playback", event: :playback_stop)
-      Pling.PlingServer.stop_playback(socket.assigns.room_code)
+      Rooms.stop_playback(socket.assigns.room_code)
     else
-      Logger.info("Starting playback", event: :playback_start)
-      Pling.PlingServer.start_playback(socket.assigns.room_code)
+      Rooms.start_playback(socket.assigns.room_code)
     end
 
     {:noreply, socket}
@@ -160,13 +107,12 @@ defmodule PlingWeb.SessionLive do
 
   @impl true
   def handle_event("next_track", _params, socket) do
-    Logger.info("Advancing to next track", event: :next_track)
-    Pling.PlingServer.next_track(socket.assigns.room_code)
+    Rooms.next_track(socket.assigns.room_code)
     {:noreply, socket}
   end
 
   def handle_event("load_new_track", _params, socket) do
-    Pling.PlingServer.next_track(socket.assigns.room_code)
+    Rooms.next_track(socket.assigns.room_code)
     {:noreply, socket}
   end
 
@@ -322,25 +268,5 @@ defmodule PlingWeb.SessionLive do
       <.playlist decade="mix" active?={@selection.playlist == "mix"} />
     </div>
     """
-  end
-
-  defp list_room_users(room_code) do
-    topic(room_code)
-    |> Presence.list()
-    |> Enum.map(fn {user_id, %{metas: [meta | _]}} ->
-      %{user_id: user_id, joined_at: meta.joined_at}
-    end)
-    |> Enum.sort_by(& &1.joined_at)
-  end
-
-  # Helper function to start a new room server
-  defp start_room_server(room_code) do
-    {:ok, pid} =
-      DynamicSupervisor.start_child(
-        Pling.RoomSupervisor,
-        {PlingServer, room_code}
-      )
-
-    pid
   end
 end

@@ -36,7 +36,7 @@ defmodule PlingWeb.Router do
     # Protect these routes with authentication
     pipe_through :require_login
     live "/", HomeLive
-    live "/session/:room_code", SessionLive
+    live "/r/:room_code", RoomLive
   end
 
   # Add authentication pipeline
