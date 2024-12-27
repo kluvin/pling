@@ -62,14 +62,6 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
   }, 0);
 };
 
-// Listen for server broadcasts via LiveView -> pushEvent
-window.addEventListener("phx:spotify:play_track", (event) => {
-  console.log("Playing track:", event.detail.track);
-  const track = event.detail.track;
-  window.EmbedController?.loadUri(track);
-  window.EmbedController?.play();
-});
-
 window.addEventListener("phx:spotify:load_track", (event) => {
   console.log("Loading track:", event.detail.track);
   const track = event.detail.track;

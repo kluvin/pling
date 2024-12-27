@@ -39,7 +39,6 @@ defmodule Pling.Rooms.PlaybackManager do
   def stop_playback(state) do
     Logger.info("Stopping playback for room: #{state.room_code}")
     cancel_timer(state)
-    Broadcaster.broadcast_playback_stop(state.room_code)
     Broadcaster.broadcast_bell(state.room_code)
     reset_playback(state)
   end

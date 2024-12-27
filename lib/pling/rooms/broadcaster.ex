@@ -11,14 +11,6 @@ defmodule Pling.Rooms.Broadcaster do
     )
   end
 
-  def broadcast_playback_stop(room_code) do
-    PlingWeb.Endpoint.broadcast(
-      "pling:room:#{room_code}",
-      "state_update",
-      %{state: Pling.Rooms.get_state(room_code)}
-    )
-  end
-
   def broadcast_bell(room_code) do
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{room_code}",

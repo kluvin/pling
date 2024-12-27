@@ -104,11 +104,6 @@ defmodule PlingWeb.RoomLive do
     {:noreply, socket}
   end
 
-  def handle_event("load_new_track", _params, socket) do
-    Rooms.next_track(socket.assigns.room_code)
-    {:noreply, socket}
-  end
-
   @impl true
   def handle_event("toggle_playlist", _params, socket) do
     {:noreply, update(socket, :show_playlist, &(!&1))}
