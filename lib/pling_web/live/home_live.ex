@@ -1,6 +1,7 @@
 defmodule PlingWeb.HomeLive do
   use PlingWeb, :live_view
   require Logger
+  alias Pling.Services.NamesService
 
   @impl true
   def mount(_params, _session, socket) do
@@ -31,9 +32,7 @@ defmodule PlingWeb.HomeLive do
   end
 
   defp generate_room_code do
-    :crypto.strong_rand_bytes(3)
-    |> Base.encode32(padding: false)
-    |> String.slice(0, 4)
+    NamesService.random_noun()
     |> String.upcase()
   end
 end
