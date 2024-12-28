@@ -9,13 +9,13 @@ defmodule Pling.Rooms.RoomManagement do
   @doc """
   Starts a new room with the given code.
   """
-  def start_room(room_code, game_mode \\ "vs") do
+  def start_room(room_code, game_mode \\ "vs", leader_id \\ nil) do
     Logger.metadata(room_code: room_code)
     Logger.info("Starting room", event: :room_start)
 
     DynamicSupervisor.start_child(
       Pling.RoomSupervisor,
-      {RoomServer, {room_code, game_mode}}
+      {RoomServer, {room_code, game_mode, leader_id}}
     )
   end
 
@@ -77,6 +77,42 @@ defmodule Pling.Rooms.RoomManagement do
     if client_count <= 1 do
       Logger.info("No more connections, terminating", event: :server_terminate)
       terminate_room(room_code)
+    end
+  end
+
+  @doc """
+  Increments a player's score in the given room.
+  """
+  def increment_player_score(room_code, user_id, amount \\ 1) do
+    with {:ok, pid} <- get_room_pid(room_code) do
+      GenServer.call(pid, {:increment_score, user_id, amount})
+    end
+  end
+
+  @doc """
+  Decrements a player's score in the given room.
+  """
+  def decrement_player_score(room_code, user_id, amount \\ 1) do
+    with {:ok, pid} <- get_room_pid(room_code) do
+      GenServer.call(pid, {:decrement_score, user_id, amount})
+    end
+  end
+
+  @doc """
+  Records a recent pling by a user in the given room.
+  """
+  def add_recent_pling(room_code, user_id) do
+    with {:ok, pid} <- get_room_pid(room_code) do
+      GenServer.call(pid, {:add_recent_pling, user_id})
+    end
+  end
+
+  @doc """
+  Clears the recent plings list for the given room.
+  """
+  def clear_recent_plings(room_code) do
+    with {:ok, pid} <- get_room_pid(room_code) do
+      GenServer.call(pid, :clear_recent_plings)
     end
   end
 

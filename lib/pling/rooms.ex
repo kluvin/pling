@@ -16,6 +16,12 @@ defmodule Pling.Rooms do
     RoomServer.counter(action, room_code, color)
   end
 
+  # Player Score Operations
+  defdelegate increment_player_score(room_code, user_id, amount \\ 1), to: RoomServer
+  defdelegate decrement_player_score(room_code, user_id, amount \\ 1), to: RoomServer
+  defdelegate add_recent_pling(room_code, user_id), to: RoomServer
+  defdelegate clear_recent_plings(room_code), to: RoomServer
+
   # Delegate to Playback context
   defdelegate start_playback(room_code), to: Playback
   defdelegate stop_playback(room_code), to: Playback
@@ -39,7 +45,9 @@ defmodule Pling.Rooms do
     server_pid =
       case RoomManagement.get_room_pid(room_code) do
         {:ok, pid} -> pid
-        :error -> {:ok, pid} = RoomManagement.start_room(room_code, game_mode); pid
+        :error -> {:ok, pid} =
+          RoomManagement.start_room(room_code, game_mode, user_id)
+          pid
       end
 
     send(server_pid, {:monitor_liveview, pid})

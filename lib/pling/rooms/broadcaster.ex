@@ -11,7 +11,7 @@ defmodule Pling.Rooms.Broadcaster do
     )
   end
 
-  def broadcast_bell(room_code, pid \\ self()) do
+  def broadcast_bell(room_code) do
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{room_code}",
       "ring_bell",
@@ -27,7 +27,7 @@ defmodule Pling.Rooms.Broadcaster do
     )
   end
 
-  def broadcast_toggle_play(room_code, pid \\ self()) do
+  def broadcast_toggle_play(room_code) do
     PlingWeb.Endpoint.broadcast(
       "pling:room:#{room_code}",
       "spotify:toggle_play",

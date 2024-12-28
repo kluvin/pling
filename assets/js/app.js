@@ -12,7 +12,12 @@ let csrfToken = document
 let Hooks = {
   PlingButton: {
     mounted() {
-      this.el.addEventListener("pointerdown", () => this.handlePointerDown());
+      this.el.addEventListener("pointerdown", (e) => {
+        const button = e.currentTarget.querySelector("button");
+        if (!button.disabled) {
+          this.handlePointerDown();
+        }
+      });
     },
 
     handlePointerDown() {
@@ -85,7 +90,6 @@ window.addEventListener("popstate", (_event) => {
 });
 
 window.addEventListener("phx:spotify:toggle_play", (_event) => {
-  console.log("Toggle play triggered from server");
   window.EmbedController?.togglePlay();
   const wrapper = document.querySelector(".embed-wrapper");
   if (wrapper) {
