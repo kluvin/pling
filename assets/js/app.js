@@ -21,7 +21,11 @@ let Hooks = {
     },
 
     handlePointerDown() {
-      this.pushEvent("toggle_play");
+      window.EmbedController?.togglePlay();
+      const wrapper = document.querySelector(".embed-wrapper");
+      if (wrapper) {
+        wrapper.classList.toggle("hidden");
+      }
     },
   },
 };

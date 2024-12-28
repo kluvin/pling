@@ -27,8 +27,9 @@ defmodule Pling.Rooms.Broadcaster do
     )
   end
 
-  def broadcast_toggle_play(room_code) do
-    PlingWeb.Endpoint.broadcast(
+  def broadcast_toggle_play(room_code, from_pid \\ self()) do
+    PlingWeb.Endpoint.broadcast_from(
+      from_pid,
       "pling:room:#{room_code}",
       "spotify:toggle_play",
       %{}
