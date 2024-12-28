@@ -93,28 +93,12 @@ window.addEventListener("popstate", (_event) => {
   window.EmbedController?.pause();
 });
 
-window.addEventListener("phx:spotify:toggle_play", (event) => {
+window.addEventListener("phx:spotify:toggle_play", (_event) => {
   console.log("Toggle play triggered from server");
-  const startTime = event.detail.start_time;
-  const now = Date.now();
-  const delay = startTime - now;
-
-  if (delay > 0) {
-    // Wait for the specified delay before starting playback
-    setTimeout(() => {
-      window.EmbedController?.togglePlay();
-      const wrapper = document.querySelector(".embed-wrapper");
-      if (wrapper) {
-        wrapper.classList.toggle("hidden");
-      }
-    }, delay);
-  } else {
-    // Start immediately if we're already past the start time
-    window.EmbedController?.togglePlay();
-    const wrapper = document.querySelector(".embed-wrapper");
-    if (wrapper) {
-      wrapper.classList.toggle("hidden");
-    }
+  window.EmbedController?.togglePlay();
+  const wrapper = document.querySelector(".embed-wrapper");
+  if (wrapper) {
+    wrapper.classList.toggle("hidden");
   }
 });
 
