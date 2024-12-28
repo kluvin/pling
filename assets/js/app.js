@@ -11,17 +11,21 @@ let csrfToken = document
 
 let Hooks = {
   PlingButton: {
-    togglePlay() {
-      window.EmbedController?.togglePlay();
-      const wrapper = document.querySelector(".embed-wrapper");
-      if (wrapper) {
-        wrapper.classList.toggle("hidden");
-      }
-      this.pushEvent("toggle_play");
+    mounted() {
+      this.ready = false;
+      this.el.addEventListener("pointerdown", () => this.handleClick());
     },
 
-    mounted() {
-      this.el.addEventListener("pointerdown", () => this.togglePlay());
+    handleClick() {
+      if (!this.ready) {
+        // First click - pause Spotify and set ready state
+        window.EmbedController?.pause();
+        this.ready = true;
+        this.pushEvent("ready");
+      } else {
+        // Subsequent clicks - normal toggle behavior
+        this.pushEvent("toggle_play");
+      }
     },
   },
 };
@@ -68,14 +72,50 @@ window.addEventListener("phx:spotify:load_track", (event) => {
   window.EmbedController?.loadUri(track);
 });
 
-window.addEventListener("phx:ring_bell", (_event) => {
+window.addEventListener("phx:ring_bell", (event) => {
   console.log("Playing bell sound");
-  document.getElementById("bell")?.play();
+  const startTime = event.detail.start_time;
+  const now = Date.now();
+  const delay = startTime - now;
+
+  const bell = document.getElementById("bell");
+  if (delay > 0) {
+    setTimeout(() => {
+      bell?.play();
+    }, delay);
+  } else {
+    bell?.play();
+  }
 });
 
 window.addEventListener("popstate", (_event) => {
   console.log("Browser back detected - pausing player");
   window.EmbedController?.pause();
+});
+
+window.addEventListener("phx:spotify:toggle_play", (event) => {
+  console.log("Toggle play triggered from server");
+  const startTime = event.detail.start_time;
+  const now = Date.now();
+  const delay = startTime - now;
+
+  if (delay > 0) {
+    // Wait for the specified delay before starting playback
+    setTimeout(() => {
+      window.EmbedController?.togglePlay();
+      const wrapper = document.querySelector(".embed-wrapper");
+      if (wrapper) {
+        wrapper.classList.toggle("hidden");
+      }
+    }, delay);
+  } else {
+    // Start immediately if we're already past the start time
+    window.EmbedController?.togglePlay();
+    const wrapper = document.querySelector(".embed-wrapper");
+    if (wrapper) {
+      wrapper.classList.toggle("hidden");
+    }
+  }
 });
 
 // connect if there are any LiveViews on the page

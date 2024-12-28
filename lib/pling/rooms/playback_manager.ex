@@ -33,6 +33,7 @@ defmodule Pling.Rooms.PlaybackManager do
       is_playing: true,
       countdown: state.spotify_track_duration
     }
+    Broadcaster.broadcast_toggle_play(state.room_code)
     schedule_next_tick(new_state)
   end
 
@@ -40,6 +41,7 @@ defmodule Pling.Rooms.PlaybackManager do
     Logger.info("Stopping playback for room: #{state.room_code}")
     cancel_timer(state)
     Broadcaster.broadcast_bell(state.room_code)
+    Broadcaster.broadcast_toggle_play(state.room_code)
     reset_playback(state)
   end
 
