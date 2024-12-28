@@ -15,9 +15,9 @@ defmodule PlingWeb.CoreComponents do
   Icons are provided by [heroicons](https://heroicons.com). See `icon/1` for usage.
   """
   use Phoenix.Component
+  use Gettext, backend: PlingWeb.Gettext
 
   alias Phoenix.LiveView.JS
-  import PlingWeb.Gettext
 
   @doc """
   Renders a modal.

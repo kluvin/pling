@@ -191,7 +191,7 @@ defmodule PlingWeb.RoomLive do
                 class="h-16 w-16 text-zinc-700"
               />
               <p :if={!@is_playing} class="text-sm text-center font-semibold text-zinc-700">
-                swipe to see song
+                <%= gettext("swipe to see song") %>
               </p>
             </div>
             <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
@@ -200,7 +200,7 @@ defmodule PlingWeb.RoomLive do
           <% end %>
         <% end %>
         <.button phx-click="toggle_playlist" class="col-span-3 text-sm font-semibold">
-          <%= if @show_playlist, do: "hide playlists", else: "show playlists" %>
+          <%= if @show_playlist, do: gettext("hide playlists"), else: gettext("show playlists") %>
         </.button>
       </div>
     </div>
@@ -213,9 +213,9 @@ defmodule PlingWeb.RoomLive do
       <div class="text-sm text-gray-500"><%= @room_code %></div>
       <div class="text-sm text-gray-500">
         <%= if length(@users) == 1 do %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> is here
+          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> <%= gettext("is here") %>
         <% else %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> is joined by
+          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> <%= gettext("is joined by") %>
           <%= for {user, index} <- Enum.with_index(Enum.drop(@users, 1)) do %>
             <span class={if user.user_id == @user_id, do: "font-bold"}><%= user.user_id %></span><%= if index < length(Enum.drop(@users, 1)) - 1, do: ", " %>
           <% end %>
@@ -236,11 +236,11 @@ defmodule PlingWeb.RoomLive do
             <% @countdown && @countdown <= @timer_threshold -> %>
               <%= @countdown %>
             <% @is_playing -> %>
-              PLING
+              <%= gettext("PLING") %>
             <% @is_leader -> %>
-              PLAY
+              <%= gettext("PLAY") %>
             <% true -> %>
-              PLING
+              <%= gettext("PLING") %>
           <% end %>
         </h1>
         <audio id="bell">
@@ -257,10 +257,10 @@ defmodule PlingWeb.RoomLive do
     ~H"""
     <div class="col-span-3 flex flex-col space-y-4 w-full px-4">
       <div class="flex justify-between items-center">
-        <div class="text-lg font-semibold">Scores</div>
+        <div class="text-lg font-semibold"><%= gettext("Scores") %></div>
         <%= if @is_leader && length(@recent_plings) > 0 do %>
           <.button phx-click="clear_plings">
-            Clear Recent
+            <%= gettext("Clear Recent") %>
           </.button>
         <% end %>
       </div>
@@ -299,7 +299,7 @@ defmodule PlingWeb.RoomLive do
       <%= if @is_leader do %>
         <div class="flex justify-center space-x-2">
           <.button phx-click="next_track">
-            Next Track
+            <%= gettext("Next Track") %>
           </.button>
         </div>
       <% end %>

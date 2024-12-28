@@ -1,0 +1,91 @@
+msgid ""
+msgstr ""
+"Language: nb\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Welcome to Pling"
+msgstr "Velkommen til Pling"
+
+msgid "A real-time music game"
+msgstr "Et sanntids musikkspill"
+
+msgid "Create Versus Room"
+msgstr "Opprett versus-rom"
+
+msgid "Create Free-for-All Room (beta)"
+msgstr "Opprett alle-mot-alle-rom (beta)"
+
+msgid "or"
+msgstr "eller"
+
+msgid "Enter a room code"
+msgstr "Skriv inn romkode"
+
+msgid "Join Room"
+msgstr "Bli med i rom"
+
+msgid "How to Play"
+msgstr "Hvordan spille"
+
+msgid "How to Play Pling"
+msgstr "Hvordan spille Pling"
+
+msgid "Game Rules and Instructions"
+msgstr "Spillregler og instruksjoner"
+
+msgid "Versus Mode"
+msgstr "Versus-modus"
+
+msgid "In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!"
+msgstr "I versus-modus konkurrerer to lag om å identifisere sanger raskere enn motstanderne. Hvert riktig gjett gir poeng til laget ditt. Laget med flest poeng til slutt vinner!"
+
+msgid "Free-for-All Mode (Beta)"
+msgstr "Alle-mot-alle-modus (Beta)"
+
+msgid "In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. The player with the most points at the end of the game wins!"
+msgstr "I alle-mot-alle-modus spiller alle individuelt. Vær først til å identifisere sangen for å få poeng. Spilleren med flest poeng ved spillets slutt vinner!"
+
+msgid "Create a room or join an existing one with a room code"
+msgstr "Opprett et rom eller bli med i et eksisterende med en romkode"
+
+msgid "Share the room code with your friends"
+msgstr "Del romkoden med vennene dine"
+
+msgid "Listen to the song clips and type your guesses"
+msgstr "Lytt til sangklippene og skriv inn gjetningene dine"
+
+msgid "Score points by being the first to correctly identify songs"
+msgstr "Få poeng ved å være først til å identifisere sanger korrekt"
+
+msgid "is here"
+msgstr "er her"
+
+msgid "is joined by"
+msgstr "er med sammen med"
+
+msgid "PLING"
+msgstr "PLING"
+
+msgid "PLAY"
+msgstr "SPILL"
+
+msgid "Scores"
+msgstr "Poeng"
+
+msgid "Clear Recent"
+msgstr "Fjern nylige"
+
+msgid "Next Track"
+msgstr "Neste sang"
+
+msgid "swipe to see song"
+msgstr "sveip for å se sang"
+
+msgid "hide playlists"
+msgstr "skjul spillelister"
+
+msgid "show playlists"
+msgstr "vis spillelister"
+
+msgid "Pling"
+msgstr "Pling" 

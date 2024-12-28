@@ -11,6 +11,11 @@ config :pling,
   ecto_repos: [Pling.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Configure Gettext
+config :pling, PlingWeb.Gettext,
+  default_locale: "nb",
+  locales: ~w(en nb)
+
 # Configures the endpoint
 config :pling, PlingWeb.Endpoint,
   url: [host: "localhost"],

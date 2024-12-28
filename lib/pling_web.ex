@@ -43,7 +43,7 @@ defmodule PlingWeb do
         layouts: [html: PlingWeb.Layouts]
 
       import Plug.Conn
-      import PlingWeb.Gettext
+      use Gettext, backend: PlingWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -54,6 +54,8 @@ defmodule PlingWeb do
       use Phoenix.LiveView,
         layout: {PlingWeb.Layouts, :app}
 
+      use Gettext, backend: PlingWeb.Gettext
+
       unquote(html_helpers())
     end
   end
@@ -61,6 +63,8 @@ defmodule PlingWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
+
+      use Gettext, backend: PlingWeb.Gettext
 
       unquote(html_helpers())
     end
@@ -85,7 +89,7 @@ defmodule PlingWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import PlingWeb.CoreComponents
-      import PlingWeb.Gettext
+      use Gettext, backend: PlingWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
