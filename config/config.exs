@@ -64,7 +64,7 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :phoenix_analytics,
-  duckdb_path: System.get_env("DUCKDB_PATH") || "/data/analytics.duckdb",
+  duckdb_path: System.get_env("DUCKDB_PATH"),
   app_domain: System.get_env("PHX_HOST") || "https://pling.fly.dev"
 
 # Use Jason for JSON parsing in Phoenix
