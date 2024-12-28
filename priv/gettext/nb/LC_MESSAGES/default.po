@@ -10,7 +10,7 @@ msgid "A real-time music game"
 msgstr "Et sanntids musikkspill"
 
 msgid "Create Versus Room"
-msgstr "Opprett versus-rom"
+msgstr "Opprett lag-mot-lag rom"
 
 msgid "Create Free-for-All Room (beta)"
 msgstr "Opprett alle-mot-alle-rom (beta)"
@@ -34,10 +34,10 @@ msgid "Game Rules and Instructions"
 msgstr "Spillregler og instruksjoner"
 
 msgid "Versus Mode"
-msgstr "Versus-modus"
+msgstr "lag mot lag-modus"
 
 msgid "In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!"
-msgstr "I versus-modus konkurrerer to lag om å identifisere sanger raskere enn motstanderne. Hvert riktig gjett gir poeng til laget ditt. Laget med flest poeng til slutt vinner!"
+msgstr "I lag mot lag-modus konkurrerer to lag om å identifisere sanger raskere enn motstanderne. Hvert riktig gjett gir poeng til laget ditt. Laget med flest poeng til slutt vinner!"
 
 msgid "Free-for-All Mode (Beta)"
 msgstr "Alle-mot-alle-modus (Beta)"
