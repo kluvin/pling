@@ -41,3 +41,7 @@ npm-debug.log
 
 *.duckdb
 *.duckdb.*
+
+*.db.wal
+
+.elixir_ls

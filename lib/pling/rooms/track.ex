@@ -1,8 +1,9 @@
 defmodule Pling.Rooms.Track do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
-  @derive {Jason.Encoder, only: [:id, :title, :artist, :uri, :playlist_id, :inserted_at, :updated_at]}
+
+  @derive {Jason.Encoder,
+           only: [:id, :title, :artist, :uri, :playlist_id, :inserted_at, :updated_at]}
 
   schema "tracks" do
     field :title, :string

@@ -1,7 +1,6 @@
 defmodule Pling.Rooms.Playlist do
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
 
   schema "playlists" do
     field :name, :string
