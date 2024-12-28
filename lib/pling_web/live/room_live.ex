@@ -54,6 +54,7 @@ defmodule PlingWeb.RoomLive do
   @impl true
   def handle_info(%{event: "state_update", payload: %{state: state}}, socket) do
     Logger.info("LiveView received state update",
+      room_code: socket.assigns.room_code,
       old_scores: inspect(socket.assigns.player_scores),
       new_scores: inspect(state.player_scores),
       assigns: inspect(Map.keys(socket.assigns))
@@ -69,27 +70,27 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "ring_bell"}, socket) do
+  def handle_info(%{event: "ring_bell"}, socket) do
     {:noreply, push_event(socket, "ring_bell", %{})}
   end
 
   @impl true
   def handle_info(
-    %Phoenix.Socket.Broadcast{event: "spotify:load_track", payload: %{track: track}},
+    %{event: "spotify:load_track", payload: %{track: track}},
     %{assigns: %{leader?: true}} = socket
   ) do
     {:noreply, push_event(socket, "spotify:load_track", %{track: track})}
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "spotify:load_track"}, socket) do
+  def handle_info(%{event: "spotify:load_track"}, socket) do
     # right now, only leader is getting a new track
     # since no one else is meant to play audio
     {:noreply, socket}
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "spotify:toggle_play"}, socket) do
+  def handle_info(%{event: "spotify:toggle_play"}, socket) do
     {:noreply, push_event(socket, "spotify:toggle_play", %{})}
   end
 
