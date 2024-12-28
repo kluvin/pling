@@ -2,10 +2,11 @@ defmodule Pling.Rooms.RoomServer do
   use GenServer
   alias Pling.Rooms.{RoomState, PlaybackManager, TeamScoring}
   alias Pling.Rooms
+  require Logger
 
   # Client API
-  def start_link(room_code) do
-    GenServer.start_link(__MODULE__, room_code, name: via_tuple(room_code))
+  def start_link({room_code, game_mode}) do
+    GenServer.start_link(__MODULE__, {room_code, game_mode}, name: via_tuple(room_code))
   end
 
   def get_state(room_code) do
@@ -33,10 +34,13 @@ defmodule Pling.Rooms.RoomServer do
 
   # Server callbacks
   @impl true
-  def init(room_code) do
+  def init({room_code, game_mode}) do
+    Logger.metadata(room_code: room_code)
+    Logger.info("Initializing room", event: :room_init)
+
     state =
       room_code
-      |> RoomState.initialize()
+      |> RoomState.initialize(game_mode)
       |> PlaybackManager.initialize_playlists()
       |> PlaybackManager.update_track()
 

@@ -5,15 +5,16 @@ defmodule PlingWeb.RoomLive do
   alias Pling.Rooms
 
   @impl true
-  def mount(%{"room_code" => room_code}, %{"user_id" => user_id}, socket) do
+  def mount(%{"room_code" => room_code, "game_mode" => game_mode}, %{"user_id" => user_id}, socket) do
     socket = assign(socket,
       room_code: room_code,
       user_id: user_id,
-      show_playlist: false
+      show_playlist: false,
+      game_mode: game_mode
     )
 
     if connected?(socket) do
-      {:ok, state} = Rooms.join_room(room_code, user_id, self())
+      {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode)
 
       {:ok,
        socket

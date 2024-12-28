@@ -5,7 +5,7 @@ defmodule Pling.Rooms.RoomState do
 
   @default_track_duration 30
 
-  def initialize(room_code) do
+  def initialize(room_code, game_mode \\ "vs") do
     %{
       red_count: 0,
       blue_count: 0,
@@ -16,7 +16,8 @@ defmodule Pling.Rooms.RoomState do
       spotify_track_duration: @default_track_duration,
       selection: %{playlist: "90s", track: nil},
       playlists: nil,
-      room_code: room_code
+      room_code: room_code,
+      game_mode: game_mode
     }
   end
 
@@ -28,7 +29,8 @@ defmodule Pling.Rooms.RoomState do
       countdown: state.countdown,
       timer_threshold: state.timer_threshold,
       selection: Map.take(state.selection, [:track, :playlist]),
-      playlists: state.playlists
+      playlists: state.playlists,
+      game_mode: state.game_mode
     }
   end
 end

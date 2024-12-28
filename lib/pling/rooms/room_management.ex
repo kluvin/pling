@@ -7,20 +7,16 @@ defmodule Pling.Rooms.RoomManagement do
   require Logger
 
   @doc """
-  Starts a new room server process.
+  Starts a new room with the given code.
   """
-  def start_room(room_code) do
-    Logger.info("Starting new room", event: :room_start, room_code: room_code)
+  def start_room(room_code, game_mode \\ "vs") do
+    Logger.metadata(room_code: room_code)
+    Logger.info("Starting room", event: :room_start)
 
-    DynamicSupervisor.start_child(Pling.RoomSupervisor, {RoomServer, room_code})
-    |> case do
-      {:ok, pid} = result ->
-        Logger.debug("Room started successfully", event: :room_start_success, room_code: room_code, pid: inspect(pid))
-        result
-      error ->
-        Logger.error("Failed to start room", event: :room_start_error, room_code: room_code, error: inspect(error))
-        error
-    end
+    DynamicSupervisor.start_child(
+      Pling.RoomSupervisor,
+      {RoomServer, {room_code, game_mode}}
+    )
   end
 
   @doc """

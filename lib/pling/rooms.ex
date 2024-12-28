@@ -32,14 +32,14 @@ defmodule Pling.Rooms do
   Joins a room, starting it if necessary, and initializes presence.
   Returns the complete state including presence information.
   """
-  def join_room(room_code, user_id, pid) do
+  def join_room(room_code, user_id, pid, game_mode \\ "vs") do
     Logger.metadata(room_code: room_code, user_id: user_id)
     Logger.info("User joining room", event: :room_join)
 
     server_pid =
       case RoomManagement.get_room_pid(room_code) do
         {:ok, pid} -> pid
-        :error -> {:ok, pid} = RoomManagement.start_room(room_code); pid
+        :error -> {:ok, pid} = RoomManagement.start_room(room_code, game_mode); pid
       end
 
     send(server_pid, {:monitor_liveview, pid})

@@ -6,9 +6,14 @@
     </.header>
 
     <div class="mt-10 space-y-4">
-      <.button phx-click="create_room" class="w-full">
-        Create New Room
-      </.button>
+      <div class="space-y-2">
+        <.button phx-click={JS.push("create_room", value: %{game_mode: "vs"})} class="w-full">
+          Create Versus Room
+        </.button>
+        <.button phx-click={JS.push("create_room", value: %{game_mode: "ffa"})} class="w-full">
+          Create Free-for-All Room
+        </.button>
+      </div>
 
       <div class="text-center p-4">
         <p class="text-3xl text-zinc-500 font-medium">or</p>

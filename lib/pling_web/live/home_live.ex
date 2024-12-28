@@ -9,9 +9,9 @@ defmodule PlingWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("create_room", _params, socket) do
+  def handle_event("create_room", %{"game_mode" => game_mode}, socket) do
     room_code = generate_room_code()
-    {:noreply, push_navigate(socket, to: ~p"/r/#{room_code}")}
+    {:noreply, push_navigate(socket, to: ~p"/#{game_mode}/#{room_code}")}
   end
 
   @impl true
@@ -28,7 +28,7 @@ defmodule PlingWeb.HomeLive do
   def handle_event("join_room", %{"room_code" => room_code}, socket) do
     upper_room_code = String.upcase(room_code)
     Logger.info("Joining room: #{upper_room_code}")
-    {:noreply, push_navigate(socket, to: ~p"/r/#{upper_room_code}")}
+    {:noreply, push_navigate(socket, to: ~p"/vs/#{upper_room_code}")}
   end
 
   defp generate_room_code do
