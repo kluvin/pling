@@ -5,23 +5,13 @@ defmodule PlingWeb.HomeLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, show_join_modal: false)}
+    {:ok, assign(socket, show_rules_modal: false)}
   end
 
   @impl true
   def handle_event("create_room", %{"game_mode" => game_mode}, socket) do
     room_code = generate_room_code()
     {:noreply, push_navigate(socket, to: ~p"/#{game_mode}/#{room_code}")}
-  end
-
-  @impl true
-  def handle_event("show_join_modal", _params, socket) do
-    {:noreply, assign(socket, show_join_modal: true)}
-  end
-
-  @impl true
-  def handle_event("hide_join_modal", _params, socket) do
-    {:noreply, assign(socket, show_join_modal: false)}
   end
 
   @impl true

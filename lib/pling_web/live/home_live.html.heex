@@ -23,6 +23,44 @@
         <.input type="text" label="Enter a room code" name="room_code" value="" required />
         <.button class="w-full">Join Room</.button>
       </.simple_form>
+
+      <div class="text-center mt-8">
+        <.button phx-click={show_modal("rules-modal")}>
+          How to Play
+        </.button>
+      </div>
     </div>
   </div>
 </div>
+
+<.modal
+  id="rules-modal"
+  show={@show_rules_modal}
+>
+  <.header>
+    How to Play Pling
+    <:subtitle>Game Rules and Instructions</:subtitle>
+  </.header>
+
+  <div class="mt-6 space-y-6">
+    <h3 class="text-lg font-semibold">Versus Mode</h3>
+    <p>
+      In Versus mode, two teams compete to identify songs faster than their opponents. 
+      Each correct guess earns points for your team. The team with the most points at the end wins!
+    </p>
+
+    <h3 class="text-lg font-semibold">Free-for-All Mode (Beta)</h3>
+    <p>
+      In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. 
+      The player with the most points at the end of the game wins!
+    </p>
+
+    <h3 class="text-lg font-semibold">How to Play</h3>
+    <ol class="list-decimal list-inside space-y-2">
+      <li>Create a room or join an existing one with a room code</li>
+      <li>Share the room code with your friends</li>
+      <li>Listen to the song clips and type your guesses</li>
+      <li>Score points by being the first to correctly identify songs</li>
+    </ol>
+  </div>
+</.modal>
