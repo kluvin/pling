@@ -12,20 +12,11 @@ let csrfToken = document
 let Hooks = {
   PlingButton: {
     mounted() {
-      this.ready = false;
-      this.el.addEventListener("pointerdown", () => this.handleClick());
+      this.el.addEventListener("pointerdown", () => this.handlePointerDown());
     },
 
-    handleClick() {
-      if (!this.ready) {
-        // First click - pause Spotify and set ready state
-        window.EmbedController?.pause();
-        this.ready = true;
-        this.pushEvent("ready");
-      } else {
-        // Subsequent clicks - normal toggle behavior
-        this.pushEvent("toggle_play");
-      }
+    handlePointerDown() {
+      this.pushEvent("toggle_play");
     },
   },
 };

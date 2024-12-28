@@ -9,8 +9,7 @@ defmodule PlingWeb.RoomLive do
     socket = assign(socket,
       room_code: room_code,
       user_id: user_id,
-      show_playlist: false,
-      ready: false
+      show_playlist: false
     )
 
     if connected?(socket) do
@@ -114,11 +113,6 @@ defmodule PlingWeb.RoomLive do
     {:noreply, update(socket, :show_playlist, &(!&1))}
   end
 
-  @impl true
-  def handle_event("ready", _params, socket) do
-    {:noreply, assign(socket, ready: true)}
-  end
-
   # ------------------------------------------------------------------
   # Render
   # ------------------------------------------------------------------
@@ -133,7 +127,6 @@ defmodule PlingWeb.RoomLive do
         is_playing={@is_playing}
         countdown={@countdown}
         timer_threshold={@timer_threshold}
-        ready={@ready}
       />
 
       <div class="grid grid-cols-3 w-full space-y-4 place-items-center">
@@ -187,8 +180,6 @@ defmodule PlingWeb.RoomLive do
       <button class="pushable relative grid place-items-center">
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= cond do %>
-            <% !@ready -> %>
-              READY
             <% @countdown && @countdown <= @timer_threshold -> %>
               <%= @countdown %>
             <% @is_playing -> %>
