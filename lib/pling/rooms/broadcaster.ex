@@ -5,7 +5,7 @@ defmodule Pling.Rooms.Broadcaster do
 
   def broadcast_track_load(room_code, track) do
     PlingWeb.Endpoint.broadcast(
-      "pling:room:#{room_code}",
+      "room:#{room_code}",
       "spotify:load_track",
       %{track: track}
     )
@@ -13,7 +13,7 @@ defmodule Pling.Rooms.Broadcaster do
 
   def broadcast_bell(room_code) do
     PlingWeb.Endpoint.broadcast(
-      "pling:room:#{room_code}",
+      "room:#{room_code}",
       "ring_bell",
       %{}
     )
@@ -21,7 +21,7 @@ defmodule Pling.Rooms.Broadcaster do
 
   def broadcast_state_transition(room_code, state) do
     PlingWeb.Endpoint.broadcast(
-      "pling:room:#{room_code}",
+      "room:#{room_code}",
       "state_update",
       %{state: state}
     )
@@ -30,7 +30,7 @@ defmodule Pling.Rooms.Broadcaster do
   def broadcast_toggle_play(room_code, from_pid \\ self()) do
     PlingWeb.Endpoint.broadcast_from(
       from_pid,
-      "pling:room:#{room_code}",
+      "room:#{room_code}",
       "spotify:toggle_play",
       %{}
     )

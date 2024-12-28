@@ -4,7 +4,7 @@ defmodule Pling.PresenceTracker do
   """
   alias Pling.Presence
 
-  def topic(room_code), do: "pling:room:#{room_code}"
+  def topic(room_code), do: "room:#{room_code}"
 
   @doc """
   Tracks a user's presence in a room.

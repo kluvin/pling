@@ -69,7 +69,7 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 window.addEventListener("phx:spotify:load_track", (event) => {
   console.log("Loading track:", event.detail.track);
   const track = event.detail.track;
-  window.EmbedController?.loadUri(track);
+  window.EmbedController?.loadUri(track.uri);
 });
 
 window.addEventListener("phx:ring_bell", (event) => {
