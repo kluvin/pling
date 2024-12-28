@@ -13,7 +13,7 @@ defmodule Pling.Rooms.Presence do
     Logger.info("Electing leader",
       user_id: user_id,
       current_leader: current_state.leader_id,
-      is_leader: current_state.leader_id == user_id
+      leader?: current_state.leader_id == user_id
     )
     current_state.leader_id == user_id
   end
@@ -29,9 +29,9 @@ defmodule Pling.Rooms.Presence do
 
     users = PresenceTracker.list_users(room_code)
     current_state = Rooms.get_state(room_code)
-    is_leader = elect_leader(user_id, current_state)
+    leader? = elect_leader(user_id, current_state)
 
-    {users, is_leader}
+    {users, leader?}
   end
 
   @doc """
@@ -40,12 +40,12 @@ defmodule Pling.Rooms.Presence do
   def update_presence(room_code, user_id) do
     users = PresenceTracker.list_users(room_code)
     current_state = Rooms.get_state(room_code)
-    is_leader = elect_leader(user_id, current_state)
+    leader? = elect_leader(user_id, current_state)
 
     if Enum.empty?(users) do
       Pling.Rooms.RoomManagement.terminate_room(room_code)
     end
 
-    {users, is_leader}
+    {users, leader?}
   end
 end

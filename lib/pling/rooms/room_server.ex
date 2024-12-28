@@ -84,11 +84,13 @@ defmodule Pling.Rooms.RoomServer do
 
   def handle_call(:start_playback, _from, state) do
     new_state = PlaybackManager.start_playback(state)
+    broadcast_state_update(new_state.room_code, new_state)
     {:reply, new_state, new_state}
   end
 
   def handle_call(:stop_playback, _from, state) do
     new_state = PlaybackManager.stop_playback(state)
+    broadcast_state_update(new_state.room_code, new_state)
     {:reply, new_state, new_state}
   end
 

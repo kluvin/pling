@@ -21,6 +21,8 @@ let Hooks = {
     },
 
     handlePointerDown() {
+      console.log("click");
+      this.pushEvent("toggle_play");
       window.EmbedController?.togglePlay();
       const wrapper = document.querySelector(".embed-wrapper");
       if (wrapper) {
@@ -76,16 +78,9 @@ window.addEventListener("phx:ring_bell", (event) => {
   console.log("Playing bell sound");
   const startTime = event.detail.start_time;
   const now = Date.now();
-  const delay = startTime - now;
 
   const bell = document.getElementById("bell");
-  if (delay > 0) {
-    setTimeout(() => {
-      bell?.play();
-    }, delay);
-  } else {
-    bell?.play();
-  }
+  bell?.play();
 });
 
 window.addEventListener("popstate", (_event) => {

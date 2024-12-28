@@ -52,10 +52,10 @@ defmodule Pling.Rooms do
 
     send(server_pid, {:monitor_liveview, pid})
 
-    {users, is_leader} = Presence.initialize_presence(room_code, user_id)
+    {users, leader?} = Presence.initialize_presence(room_code, user_id)
     current_state = get_state(room_code)
 
-    {:ok, Map.merge(current_state, %{users: users, is_leader: is_leader})}
+    {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
   end
 
   defdelegate update_presence(room_code, user_id), to: Presence

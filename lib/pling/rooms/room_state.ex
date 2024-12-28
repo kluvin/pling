@@ -13,7 +13,7 @@ defmodule Pling.Rooms.RoomState do
     %{
       red_count: 0,
       blue_count: 0,
-      is_playing: false,
+      playing?: false,
       countdown: nil,
       timer_ref: nil,
       timer_threshold: 10,
@@ -32,7 +32,7 @@ defmodule Pling.Rooms.RoomState do
     %{
       red_count: state.red_count,
       blue_count: state.blue_count,
-      is_playing: state.is_playing,
+      playing?: state.playing?,
       countdown: state.countdown,
       timer_threshold: state.timer_threshold,
       selection: Map.take(state.selection, [:track, :playlist]),
