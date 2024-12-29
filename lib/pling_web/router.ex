@@ -3,7 +3,7 @@ defmodule PlingWeb.Router do
   import Phoenix.LiveView.Router
 
   import Plug.BasicAuth
-  use PhoenixAnalytics.Web, :router
+  # use PhoenixAnalytics.Web, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -24,7 +24,7 @@ defmodule PlingWeb.Router do
 
   scope "/", PlingWeb do
     pipe_through [:browser, :dashboard_auth]
-    phoenix_analytics_dashboard("/analytics")
+    # phoenix_analytics_dashboard("/analytics")
   end
 
   scope "/", PlingWeb do

@@ -41,7 +41,6 @@ defmodule Pling.MixProject do
       {:phoenix_live_view, "~> 1.0.1"},
       {:floki, ">= 0.30.0", only: :test},
       {:phoenix_live_dashboard, "~> 0.8.3"},
-      {:phoenix_analytics, "~> 0.2"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
       {:heroicons,

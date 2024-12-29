@@ -78,6 +78,6 @@ config :phoenix_live_view, :debug_heex_annotations, true
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-# Set DuckDB path for development
-config :phoenix_analytics,
-  duckdb_path: "analytics.db"
+# # Set DuckDB path for development
+# config :phoenix_analytics,
+#   duckdb_path: "analytics.db"
