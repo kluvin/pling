@@ -9,6 +9,8 @@ let csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
 
+let togglePlayLocked = false;
+
 let Hooks = {
   PlingButton: {
     mounted() {
@@ -22,11 +24,22 @@ let Hooks = {
 
     handlePointerDown() {
       console.log("click");
-      this.pushEvent("toggle_play");
-      window.EmbedController?.togglePlay();
-      const wrapper = document.querySelector(".embed-wrapper");
-      if (wrapper) {
-        wrapper.classList.toggle("hidden");
+      if (togglePlayLocked) {
+        setTimeout(() => {
+          this.pushEvent("toggle_play");
+          window.EmbedController?.togglePlay();
+          const wrapper = document.querySelector(".embed-wrapper");
+          if (wrapper) {
+            wrapper.classList.toggle("hidden");
+          }
+        }, 200);
+      } else {
+        this.pushEvent("toggle_play");
+        window.EmbedController?.togglePlay();
+        const wrapper = document.querySelector(".embed-wrapper");
+        if (wrapper) {
+          wrapper.classList.toggle("hidden");
+        }
       }
     },
   },
@@ -72,6 +85,11 @@ window.addEventListener("phx:spotify:load_track", (event) => {
   console.log("Loading track:", event.detail.track);
   const track = event.detail.track;
   window.EmbedController?.loadUri(track.uri);
+
+  togglePlayLocked = true;
+  setTimeout(() => {
+    togglePlayLocked = false;
+  }, 200);
 });
 
 window.addEventListener("phx:ring_bell", (event) => {
@@ -89,7 +107,7 @@ window.addEventListener("popstate", (_event) => {
 });
 
 window.addEventListener("phx:spotify:toggle_play", (_event) => {
-  window.EmbedController?.togglePlay();
+  // window.EmbedController?.togglePlay();
   const wrapper = document.querySelector(".embed-wrapper");
   if (wrapper) {
     wrapper.classList.toggle("hidden");
