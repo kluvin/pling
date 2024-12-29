@@ -13,19 +13,6 @@ defmodule Pling.Release do
     end
   end
 
-  def startup do
-    # Load the application first
-    load_app()
-
-    # Run migrations
-    IO.puts("Running migrations...")
-    migrate()
-
-    # Start the application
-    IO.puts("Starting application...")
-    Application.ensure_all_started(@app)
-  end
-
   def rollback(repo, version) do
     load_app()
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))

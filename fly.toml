@@ -10,6 +10,7 @@ kill_signal = 'SIGTERM'
 [build]
 
 [env]
+  DUCKDB_PATH = "/data/duck.db"
   DATABASE_PATH = "/data/db.db"
   PHX_HOST = "https://pling.fly.dev"
   PORT = '8080'
