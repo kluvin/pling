@@ -1,64 +1,71 @@
 <div class="px-4 py-10 sm:px-6 sm:py-28 lg:px-8 xl:px-28 xl:py-32">
   <div class="mx-auto max-w-xl lg:mx-0">
     <.header>
-      <%= gettext("Welcome to Pling") %>
-      <:subtitle><%= gettext("A real-time music game") %></:subtitle>
+      {gettext("Welcome to Pling")}
+      <:subtitle>{gettext("A real-time music game")}</:subtitle>
     </.header>
 
     <div class="mt-10 space-y-4">
       <div class="space-y-2">
         <.button phx-click={JS.push("create_room", value: %{game_mode: "vs"})} class="w-full">
-          <%= gettext("Create Versus Room") %>
+          {gettext("Create Versus Room")}
         </.button>
         <.button phx-click={JS.push("create_room", value: %{game_mode: "ffa"})} class="w-full">
-          <%= gettext("Create Free-for-All Room (beta)") %>
+          {gettext("Create Free-for-All Room (beta)")}
         </.button>
       </div>
 
       <div class="text-center p-4">
-        <p class="text-3xl text-zinc-500 font-medium"><%= gettext("or") %></p>
+        <p class="text-3xl text-zinc-500 font-medium">{gettext("or")}</p>
       </div>
 
       <.simple_form for={%{}} phx-submit="join_room" class="space-y-4">
-        <.input type="text" label={gettext("Enter a room code")} name="room_code" value="" required />
-        <.button class="w-full"><%= gettext("Join Room") %></.button>
+        <.input
+          type="text"
+          label={gettext("Enter a room code")}
+          name="room_code"
+          value=""
+          required
+        />
+        <.button class="w-full">{gettext("Join Room")}</.button>
       </.simple_form>
 
       <div class="text-center mt-8">
         <.button phx-click={show_modal("rules-modal")}>
-          <%= gettext("How to Play") %>
+          {gettext("How to Play")}
         </.button>
       </div>
     </div>
   </div>
 </div>
 
-<.modal
-  id="rules-modal"
-  show={@show_rules_modal}
->
+<.modal id="rules-modal" show={@show_rules_modal}>
   <.header>
-    <%= gettext("How to Play Pling") %>
-    <:subtitle><%= gettext("Game Rules and Instructions") %></:subtitle>
+    {gettext("How to Play Pling")}
+    <:subtitle>{gettext("Game Rules and Instructions")}</:subtitle>
   </.header>
 
   <div class="mt-6 space-y-6">
-    <h3 class="text-lg font-semibold"><%= gettext("Versus Mode") %></h3>
+    <h3 class="text-lg font-semibold">{gettext("Versus Mode")}</h3>
     <p>
-      <%= gettext("In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!") %>
+      {gettext(
+        "In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!"
+      )}
     </p>
 
-    <h3 class="text-lg font-semibold"><%= gettext("Free-for-All Mode (Beta)") %></h3>
+    <h3 class="text-lg font-semibold">{gettext("Free-for-All Mode (Beta)")}</h3>
     <p>
-      <%= gettext("In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. The player with the most points at the end of the game wins!") %>
+      {gettext(
+        "In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. The player with the most points at the end of the game wins!"
+      )}
     </p>
 
-    <h3 class="text-lg font-semibold"><%= gettext("How to Play") %></h3>
+    <h3 class="text-lg font-semibold">{gettext("How to Play")}</h3>
     <ol class="list-decimal list-inside space-y-2">
-      <li><%= gettext("Create a room or join an existing one with a room code") %></li>
-      <li><%= gettext("Share the room code with your friends") %></li>
-      <li><%= gettext("Listen to the song clips and type your guesses") %></li>
-      <li><%= gettext("Score points by being the first to correctly identify songs") %></li>
+      <li>{gettext("Create a room or join an existing one with a room code")}</li>
+      <li>{gettext("Share the room code with your friends")}</li>
+      <li>{gettext("Listen to the song clips and type your guesses")}</li>
+      <li>{gettext("Score points by being the first to correctly identify songs")}</li>
     </ol>
   </div>
 </.modal>

@@ -233,7 +233,7 @@ defmodule Pling.Services.NamesService do
     "Bilde"
   ]
 
-    # N = 100^2 = 10k
+  # N = 100^2 = 10k
   def generate do
     "#{random_adjective()}-#{random_noun()}"
   end

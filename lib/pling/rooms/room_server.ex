@@ -6,7 +6,9 @@ defmodule Pling.Rooms.RoomServer do
 
   # Client API
   def start_link({room_code, game_mode, leader_id}) do
-    GenServer.start_link(__MODULE__, {room_code, game_mode, leader_id}, name: via_tuple(room_code))
+    GenServer.start_link(__MODULE__, {room_code, game_mode, leader_id},
+      name: via_tuple(room_code)
+    )
   end
 
   def get_state(room_code) do

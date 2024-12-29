@@ -21,6 +21,7 @@ defmodule Pling.Rooms.PlaybackManager do
 
   def change_playlist(state, playlist) do
     Logger.info("Changing playlist to: #{playlist} for room: #{state.room_code}")
+
     state
     |> Map.put(:selection, %{playlist: playlist, track: nil})
     |> update_track()
@@ -29,10 +30,7 @@ defmodule Pling.Rooms.PlaybackManager do
 
   def start_playback(state) do
     Logger.info("Starting playback for room: #{state.room_code}")
-    new_state = %{state |
-      playing?: true,
-      countdown: state.spotify_track_duration
-    }
+    new_state = %{state | playing?: true, countdown: state.spotify_track_duration}
     Broadcaster.broadcast_toggle_play(state.room_code)
     schedule_next_tick(new_state)
   end
@@ -67,6 +65,7 @@ defmodule Pling.Rooms.PlaybackManager do
 
   defp handle_timeout(state) do
     Logger.info("Track timeout for room: #{state.room_code}")
+
     new_state =
       state
       |> update_track()
@@ -87,16 +86,13 @@ defmodule Pling.Rooms.PlaybackManager do
     timer_ref = Process.send_after(self(), :tick, 1000)
     %{state | timer_ref: timer_ref}
   end
+
   defp schedule_next_tick(state), do: state
 
   defp cancel_timer(%{timer_ref: ref}) when is_reference(ref), do: Process.cancel_timer(ref)
   defp cancel_timer(_), do: :ok
 
   defp reset_playback(state) do
-    %{state |
-      playing?: false,
-      countdown: nil,
-      timer_ref: nil
-    }
+    %{state | playing?: false, countdown: nil, timer_ref: nil}
   end
 end

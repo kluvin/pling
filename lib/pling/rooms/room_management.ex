@@ -25,8 +25,14 @@ defmodule Pling.Rooms.RoomManagement do
   def get_room_pid(room_code) do
     case Registry.lookup(Pling.Rooms.ServerRegistry, room_code) do
       [{pid, _}] ->
-        Logger.debug("Found existing room", event: :room_lookup, room_code: room_code, pid: inspect(pid))
+        Logger.debug("Found existing room",
+          event: :room_lookup,
+          room_code: room_code,
+          pid: inspect(pid)
+        )
+
         {:ok, pid}
+
       [] ->
         Logger.debug("Room not found", event: :room_lookup, room_code: room_code)
         :error
@@ -39,12 +45,21 @@ defmodule Pling.Rooms.RoomManagement do
   def terminate_room(room_code) do
     case Registry.lookup(Pling.Rooms.ServerRegistry, room_code) do
       [{pid, _}] ->
-        Logger.info("Terminating room", event: :room_terminate, room_code: room_code, pid: inspect(pid))
+        Logger.info("Terminating room",
+          event: :room_terminate,
+          room_code: room_code,
+          pid: inspect(pid)
+        )
+
         DynamicSupervisor.terminate_child(Pling.RoomSupervisor, pid)
         :ok
 
       [] ->
-        Logger.debug("Cannot terminate: room not found", event: :room_terminate, room_code: room_code)
+        Logger.debug("Cannot terminate: room not found",
+          event: :room_terminate,
+          room_code: room_code
+        )
+
         :error
     end
   end
@@ -58,6 +73,7 @@ defmodule Pling.Rooms.RoomManagement do
       pid: inspect(pid),
       connection_count: count_clients(room_code) + 1
     )
+
     RoomServer.monitor_liveview(room_code, pid)
   end
 

@@ -16,7 +16,11 @@ defmodule Pling.Rooms.FreeForAll do
   """
   def decrement_score(state, user_id, amount \\ 1) do
     current_score = Map.get(state.player_scores, user_id, 0)
-    %{state | player_scores: Map.put(state.player_scores, user_id, max(0, current_score - amount))}
+
+    %{
+      state
+      | player_scores: Map.put(state.player_scores, user_id, max(0, current_score - amount))
+    }
   end
 
   @doc """

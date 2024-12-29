@@ -15,6 +15,7 @@ defmodule Pling.Rooms.Presence do
       current_leader: current_state.leader_id,
       leader?: current_state.leader_id == user_id
     )
+
     current_state.leader_id == user_id
   end
 

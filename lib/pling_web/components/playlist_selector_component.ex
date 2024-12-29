@@ -15,7 +15,7 @@ defmodule PlingWeb.Components.PlaylistSelector do
       phx-click="set_playlist"
       phx-value-decade={@decade}
     >
-      <%= @decade %>
+      {@decade}
     </button>
     """
   end

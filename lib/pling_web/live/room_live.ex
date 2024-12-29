@@ -6,13 +6,18 @@ defmodule PlingWeb.RoomLive do
   require Logger
 
   @impl true
-  def mount(%{"room_code" => room_code, "game_mode" => game_mode}, %{"user_id" => user_id}, socket) do
-    socket = assign(socket,
-      room_code: room_code,
-      user_id: user_id,
-      show_playlist: false,
-      game_mode: game_mode
-    )
+  def mount(
+        %{"room_code" => room_code, "game_mode" => game_mode},
+        %{"user_id" => user_id},
+        socket
+      ) do
+    socket =
+      assign(socket,
+        room_code: room_code,
+        user_id: user_id,
+        show_playlist: false,
+        game_mode: game_mode
+      )
 
     if connected?(socket) do
       {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode)
@@ -39,6 +44,7 @@ defmodule PlingWeb.RoomLive do
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
     {users, leader?} = Rooms.update_presence(socket.assigns.room_code, socket.assigns.user_id)
+
     Logger.info("Presence diff - leader status update",
       user_id: socket.assigns.user_id,
       leader?: leader?,
@@ -76,9 +82,9 @@ defmodule PlingWeb.RoomLive do
 
   @impl true
   def handle_info(
-    %{event: "spotify:load_track", payload: %{track: track}},
-    %{assigns: %{leader?: true}} = socket
-  ) do
+        %{event: "spotify:load_track", payload: %{track: track}},
+        %{assigns: %{leader?: true}} = socket
+      ) do
     {:noreply, push_event(socket, "spotify:load_track", %{track: track})}
   end
 
@@ -145,10 +151,14 @@ defmodule PlingWeb.RoomLive do
     {:noreply, socket}
   end
 
-
   @impl true
-  def handle_event("adjust_score", %{"user_id" => user_id, "amount" => amount}, %{assigns: %{game_mode: "ffa", leader?: true}} = socket) do
+  def handle_event(
+        "adjust_score",
+        %{"user_id" => user_id, "amount" => amount},
+        %{assigns: %{game_mode: "ffa", leader?: true}} = socket
+      ) do
     amount = String.to_integer(amount)
+
     Logger.info("Adjusting score",
       user_id: user_id,
       amount: amount,
@@ -160,11 +170,16 @@ defmodule PlingWeb.RoomLive do
     else
       Rooms.decrement_player_score(socket.assigns.room_code, user_id, abs(amount))
     end
+
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("clear_plings", _params, %{assigns: %{game_mode: "ffa", leader?: true}} = socket) do
+  def handle_event(
+        "clear_plings",
+        _params,
+        %{assigns: %{game_mode: "ffa", leader?: true}} = socket
+      ) do
     Rooms.clear_recent_plings(socket.assigns.room_code)
     {:noreply, socket}
   end
@@ -197,7 +212,7 @@ defmodule PlingWeb.RoomLive do
                 class="h-16 w-16 text-zinc-700"
               />
               <p :if={!@playing?} class="text-sm text-center font-semibold text-zinc-700">
-                <%= gettext("swipe to see song") %>
+                {gettext("swipe to see song")}
               </p>
             </div>
             <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
@@ -206,7 +221,7 @@ defmodule PlingWeb.RoomLive do
           <% end %>
         <% end %>
         <.button phx-click="toggle_playlist" class="col-span-3 text-sm font-semibold">
-          <%= if @show_playlist, do: gettext("hide playlists"), else: gettext("show playlists") %>
+          {if @show_playlist, do: gettext("hide playlists"), else: gettext("show playlists")}
         </.button>
       </div>
     </div>
@@ -216,14 +231,29 @@ defmodule PlingWeb.RoomLive do
   def room_info(assigns) do
     ~H"""
     <div class="w-full text-center space-y-2">
-      <div class="text-sm text-gray-500"><%= @room_code %></div>
+      <div class="text-sm text-gray-500">{@room_code}</div>
       <div class="text-sm text-gray-500">
         <%= if length(@users) == 1 do %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> <%= gettext("is here") %>
+          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
+            {Enum.at(@users, 0).user_id}
+          </span>
+           {gettext("is here")}
         <% else %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}><%= Enum.at(@users, 0).user_id %></span> <%= gettext("is joined by") %>
+          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
+            {Enum.at(@users, 0).user_id}
+          </span>
+           {gettext("is joined by")}
           <%= for {user, index} <- Enum.with_index(Enum.drop(@users, 1)) do %>
-            <span class={if user.user_id == @user_id, do: "font-bold"}><%= user.user_id %></span><%= if index < length(Enum.drop(@users, 1)) - 1, do: ", " %>
+            <span class={if user.user_id == @user_id, do: "font-bold"}>{user.user_id}</span>{if index <
+                                                                                                  length(
+                                                                                                    Enum.drop(
+                                                                                                      @users,
+                                                                                                      1
+                                                                                                    )
+                                                                                                  ) -
+                                                                                                    1,
+                                                                                                do:
+                                                                                                  ", "}
           <% end %>
         <% end %>
       </div>
@@ -235,30 +265,36 @@ defmodule PlingWeb.RoomLive do
     assigns = assign(assigns, :disabled?, !assigns.leader? && !assigns.playing?)
 
     ~H"""
-    <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :playing?, :__changed__]), pretty: true) %></pre>
-    <div id="start" phx-hook="PlingButton" class="flex place-content-center w-full" data-leader={@leader?}>
+    <%!-- <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :playing?, :__changed__]), pretty: true) %></pre> --%>
+    <div
+      id="start"
+      phx-hook="PlingButton"
+      class="flex place-content-center w-full"
+      data-leader={@leader?}
+    >
       <button class="pushable relative grid place-items-center" disabled={@disabled?}>
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= cond do %>
-          <%!-- if we are counting down from <NUMBER> --%>
+            <%!-- if we are counting down from <NUMBER> --%>
             <% @countdown && @countdown <= @timer_threshold -> %>
-              <%= @countdown %>
+              {@countdown}
               <%!-- Otherwise, we are playing --%>
             <% @playing? -> %>
-              <%= gettext("PLING") %>
+              {gettext("PLING")}
               <%!-- If we're not, leader will see Play --%>
             <% @leader? -> %>
-              <%= gettext("PLAY") %>
+              {gettext("PLAY")}
               <%!-- Everyone else gets Pling --%>
             <% true -> %>
-              <%= gettext("PLING") %>
+              {gettext("PLING")}
           <% end %>
         </h1>
         <audio id="bell">
           <source src={~p"/audio/bell.mp3"} type="audio/mp3" />
         </audio>
         <span class={"edge #{if @disabled?, do: "bg-gray-800", else: "bg-red-800"}"}></span>
-        <span class={"front #{if @disabled?, do: "bg-gradient-to-b from-gray-500 to-gray-600", else: "bg-gradient-to-b from-red-500 to-red-600"}"}></span>
+        <span class={"front #{if @disabled?, do: "bg-gradient-to-b from-gray-500 to-gray-600", else: "bg-gradient-to-b from-red-500 to-red-600"}"}>
+        </span>
       </button>
     </div>
     """
@@ -268,10 +304,10 @@ defmodule PlingWeb.RoomLive do
     ~H"""
     <div class="col-span-3 flex flex-col space-y-4 w-full px-4">
       <div class="flex justify-between items-center">
-        <div class="text-lg font-semibold"><%= gettext("Scores") %></div>
+        <div class="text-lg font-semibold">{gettext("Scores")}</div>
         <%= if @leader? && length(@recent_plings) > 0 do %>
           <.button phx-click="clear_plings">
-            <%= gettext("Clear Recent") %>
+            {gettext("Clear Recent")}
           </.button>
         <% end %>
       </div>
@@ -279,10 +315,12 @@ defmodule PlingWeb.RoomLive do
       <div class="space-y-2">
         <%= for user <- @users do %>
           <div class={"ring flex justify-between items-center p-2 rounded #{if user.user_id in @recent_plings, do: "bg-yellow-100 animate-pulse", else: "bg-slate-50"}"}>
-            <span class={"font-medium #{if user.user_id == @user_id, do: "font-bold"}"}><%= user.user_id %></span>
+            <span class={"font-medium #{if user.user_id == @user_id, do: "font-bold"}"}>
+              {user.user_id}
+            </span>
             <div class="flex items-center space-x-2">
               <span class="text-lg font-bold">
-                <%= Map.get(@player_scores, user.user_id, 0) %>
+                {Map.get(@player_scores, user.user_id, 0)}
               </span>
               <%= if @leader? do %>
                 <div class="flex space-x-1">
@@ -310,7 +348,7 @@ defmodule PlingWeb.RoomLive do
       <%= if @leader? do %>
         <div class="flex justify-center space-x-2">
           <.button phx-click="next_track">
-            <%= gettext("Next Track") %>
+            {gettext("Next Track")}
           </.button>
         </div>
       <% end %>
@@ -348,7 +386,7 @@ defmodule PlingWeb.RoomLive do
           "front !flex !items-center justify-center !text-2xl !font-semibold !p-0 !w-24 !h-24",
           @bg_class
         ]}>
-          <%= @count %>
+          {@count}
         </span>
       </button>
       <button

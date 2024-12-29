@@ -44,9 +44,13 @@ defmodule Pling.Rooms do
 
     server_pid =
       case RoomManagement.get_room_pid(room_code) do
-        {:ok, pid} -> pid
-        :error -> {:ok, pid} =
-          RoomManagement.start_room(room_code, game_mode, user_id)
+        {:ok, pid} ->
+          pid
+
+        :error ->
+          {:ok, pid} =
+            RoomManagement.start_room(room_code, game_mode, user_id)
+
           pid
       end
 
