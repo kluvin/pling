@@ -190,7 +190,7 @@ defmodule PlingWeb.RoomLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="w-full flex flex-col h-dvh space-y-4 py-4 justify-between">
+    <div class="w-full flex flex-col h-dvh space-y-4 py-4 justify-between" data-leader={@leader?}>
       <.room_info room_code={@room_code} users={@users} user_id={@user_id} />
       <.pling_button
         playing?={@playing?}
@@ -237,12 +237,12 @@ defmodule PlingWeb.RoomLive do
           <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
             {Enum.at(@users, 0).user_id}
           </span>
-           {gettext("is here")}
+          {gettext("is here")}
         <% else %>
           <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
             {Enum.at(@users, 0).user_id}
           </span>
-           {gettext("is joined by")}
+          {gettext("is joined by")}
           <%= for {user, index} <- Enum.with_index(Enum.drop(@users, 1)) do %>
             <span class={if user.user_id == @user_id, do: "font-bold"}>{user.user_id}</span>{if index <
                                                                                                   length(
@@ -265,13 +265,7 @@ defmodule PlingWeb.RoomLive do
     assigns = assign(assigns, :disabled?, !assigns.leader? && !assigns.playing?)
 
     ~H"""
-    <%!-- <pre class="w-1/2"><%= inspect(Map.take(assigns, [:selection, :countdown, :playing?, :__changed__]), pretty: true) %></pre> --%>
-    <div
-      id="start"
-      phx-hook="PlingButton"
-      class="flex place-content-center w-full"
-      data-leader={@leader?}
-    >
+    <div id="start" phx-hook="PlingButton" class="flex place-content-center w-full">
       <button class="pushable relative grid place-items-center" disabled={@disabled?}>
         <h1 class="inline absolute text-6xl z-50 font-bold text-center text-white drop-shadow-sm">
           <%= cond do %>

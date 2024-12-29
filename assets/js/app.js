@@ -64,6 +64,12 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     return;
   }
 
+  const rootElement = document.querySelector("[data-leader]");
+  if (!rootElement || rootElement.dataset.leader !== "true") {
+    console.log("Spotify embed disabled for non-leader");
+    return;
+  }
+
   const initialTrack = element.getAttribute("data-initial-track");
   const callback = (EmbedController) => {
     console.log("Spotify Embed Controller initialized");
@@ -107,7 +113,7 @@ window.addEventListener("popstate", (_event) => {
 });
 
 window.addEventListener("phx:spotify:toggle_play", (_event) => {
-  // window.EmbedController?.togglePlay();
+  window.EmbedController?.togglePlay();
   const wrapper = document.querySelector(".embed-wrapper");
   if (wrapper) {
     wrapper.classList.toggle("hidden");
