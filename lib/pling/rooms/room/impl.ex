@@ -46,7 +46,7 @@ defmodule Pling.Rooms.Room.Impl do
 
   def for_client(state), do: RoomState.for_client(state)
 
-  defp via_tuple(room_code) do
+  def via_tuple(room_code) do
     {:via, Registry, {Pling.Rooms.ServerRegistry, room_code}}
   end
 end

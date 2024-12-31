@@ -61,8 +61,7 @@ defmodule PlingWeb.RoomLive do
   def handle_info(%{event: "state_update", payload: %{state: state}}, socket) do
     Logger.info("LiveView received state update",
       room_code: socket.assigns.room_code,
-      old_scores: inspect(socket.assigns.player_scores),
-      new_scores: inspect(state.player_scores),
+      scores: inspect(state.scores),
       assigns: inspect(Map.keys(socket.assigns))
     )
 
@@ -176,7 +175,7 @@ defmodule PlingWeb.RoomLive do
           <.playlist_grid selection={@selection} />
         <% else %>
           <%= if @game_mode == "vs" do %>
-            <.counter_button color="red" red_count={@red_count} blue_count={@blue_count} />
+            <.counter_button color="red" scores={@scores} />
             <div class="flex flex-col items-center">
               <.icon
                 :if={!@playing?}
@@ -187,7 +186,7 @@ defmodule PlingWeb.RoomLive do
                 {gettext("swipe to see song")}
               </p>
             </div>
-            <.counter_button color="blue" red_count={@red_count} blue_count={@blue_count} />
+            <.counter_button color="blue" scores={@scores} />
           <% else %>
             <.render_scores {assigns} />
           <% end %>
@@ -330,7 +329,7 @@ defmodule PlingWeb.RoomLive do
         _ -> {"bg-gray-800", "bg-gradient-to-b from-gray-500 to-gray-600"}
       end
 
-    count_value = Map.get(assigns.scores, assigns.color, 0)
+    count_value = Map.get(assigns.scores || %{}, assigns.color, 0)
 
     assigns =
       assign(assigns,

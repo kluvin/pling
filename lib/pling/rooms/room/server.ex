@@ -3,6 +3,10 @@ defmodule Pling.Rooms.Room.Server do
   alias Pling.Rooms.Room.Impl
   require Logger
 
+  def start_link({room_code, _game_mode, _leader_id} = init_args) do
+    GenServer.start_link(__MODULE__, init_args, name: Impl.via_tuple(room_code))
+  end
+
   @impl true
   def init({room_code, game_mode, leader_id}) do
     Logger.metadata(room_code: room_code)
@@ -58,7 +62,7 @@ defmodule Pling.Rooms.Room.Server do
 
   defp broadcast_state_update(room_code, state) do
     Logger.info("Broadcasting state update",
-      scores: inspect(state.player_scores),
+      scores: inspect(state.scores),
       room_code: room_code
     )
 

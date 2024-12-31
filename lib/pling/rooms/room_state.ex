@@ -11,8 +11,7 @@ defmodule Pling.Rooms.RoomState do
     end
 
     %{
-      red_count: 0,
-      blue_count: 0,
+      scores: %{},
       playing?: false,
       countdown: nil,
       timer_ref: nil,
@@ -22,7 +21,6 @@ defmodule Pling.Rooms.RoomState do
       playlists: nil,
       room_code: room_code,
       game_mode: game_mode,
-      player_scores: %{},
       leader_id: leader_id,
       recent_plings: []
     }
@@ -30,15 +28,13 @@ defmodule Pling.Rooms.RoomState do
 
   def for_client(state) do
     %{
-      red_count: state.red_count,
-      blue_count: state.blue_count,
       playing?: state.playing?,
       countdown: state.countdown,
       timer_threshold: state.timer_threshold,
       selection: Map.take(state.selection, [:track, :playlist]),
       playlists: state.playlists,
       game_mode: state.game_mode,
-      player_scores: state.player_scores,
+      scores: state.scores,
       leader_id: state.leader_id,
       recent_plings: state.recent_plings
     }
