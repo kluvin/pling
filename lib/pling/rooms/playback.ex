@@ -37,10 +37,10 @@ defmodule Pling.Rooms.Playback do
     end
   end
 
-  def handle_tick(room_code) do
+  def process_tick(room_code) do
     with state <- Room.Impl.get_state(room_code),
          _ <-
-           Logger.debug("Handling tick",
+           Logger.debug("Processing tick",
              room_code: room_code,
              playing?: state.playing?,
              countdown: state.countdown
@@ -51,8 +51,8 @@ defmodule Pling.Rooms.Playback do
     end
   end
 
-  def handle_track_timeout(room_code) do
-    Logger.info("Handling track timeout", room_code: room_code)
+  def process_track_timeout(room_code) do
+    Logger.info("Processing track timeout", room_code: room_code)
 
     with state <- Room.Impl.get_state(room_code),
          _ <-

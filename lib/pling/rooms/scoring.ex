@@ -6,7 +6,7 @@ defmodule Pling.Rooms.Scoring do
   - A user_id for free-for-all mode
   """
   require Logger
-  alias Pling.Rooms.{Broadcaster, RoomState, PlaybackManager}
+  alias Pling.Rooms.{Broadcaster, RoomState, PlaybackManager, Room}
 
   def update(state, identifier, amount) do
     current_score = Map.get(state.scores, identifier, 0)
@@ -23,5 +23,12 @@ defmodule Pling.Rooms.Scoring do
 
   def get_score(state, identifier) do
     Map.get(state.scores, identifier, 0)
+  end
+
+  def update_score(room_code, identifier, amount) do
+    state = Room.Impl.get_state(room_code)
+    new_state = update(state, identifier, amount)
+    Room.Impl.update_state(room_code, new_state)
+    {:ok, new_state}
   end
 end

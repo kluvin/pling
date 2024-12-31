@@ -71,7 +71,7 @@ defmodule PlingWeb.RoomLive do
 
   @impl true
   def handle_info(:tick, socket) do
-    Rooms.Playback.handle_tick(socket.assigns.room_code)
+    Rooms.Playback.process_tick(socket.assigns.room_code)
     {:noreply, socket}
   end
 
