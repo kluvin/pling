@@ -105,13 +105,13 @@ defmodule PlingWeb.RoomLive do
   # ------------------------------------------------------------------
   @impl true
   def handle_event("counter:increment", %{"color" => color}, socket) do
-    Rooms.update_counter(:increment, socket.assigns.room_code, color)
+    Rooms.update_score(socket.assigns.room_code, color, 1)
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("counter:decrement", %{"color" => color}, socket) do
-    Rooms.update_counter(:decrement, socket.assigns.room_code, color)
+    Rooms.update_score(socket.assigns.room_code, color, -1)
     {:noreply, socket}
   end
 
@@ -146,41 +146,13 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_event("pling", _params, socket) do
-    Rooms.add_recent_pling(socket.assigns.room_code, socket.assigns.user_id)
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_event(
         "adjust_score",
         %{"user_id" => user_id, "amount" => amount},
         %{assigns: %{game_mode: "ffa", leader?: true}} = socket
       ) do
     amount = String.to_integer(amount)
-
-    Logger.info("Adjusting score",
-      user_id: user_id,
-      amount: amount,
-      current_scores: inspect(socket.assigns.player_scores)
-    )
-
-    if amount > 0 do
-      Rooms.increment_player_score(socket.assigns.room_code, user_id, amount)
-    else
-      Rooms.decrement_player_score(socket.assigns.room_code, user_id, abs(amount))
-    end
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event(
-        "clear_plings",
-        _params,
-        %{assigns: %{game_mode: "ffa", leader?: true}} = socket
-      ) do
-    Rooms.clear_recent_plings(socket.assigns.room_code)
+    Rooms.update_score(socket.assigns.room_code, user_id, amount)
     {:noreply, socket}
   end
 
@@ -314,7 +286,7 @@ defmodule PlingWeb.RoomLive do
             </span>
             <div class="flex items-center space-x-2">
               <span class="text-lg font-bold">
-                {Map.get(@player_scores, user.user_id, 0)}
+                {Map.get(@scores, user.user_id, 0)}
               </span>
               <%= if @leader? do %>
                 <div class="flex space-x-1">
@@ -358,7 +330,7 @@ defmodule PlingWeb.RoomLive do
         _ -> {"bg-gray-800", "bg-gradient-to-b from-gray-500 to-gray-600"}
       end
 
-    count_value = if assigns.color == "red", do: assigns.red_count, else: assigns.blue_count
+    count_value = Map.get(assigns.scores, assigns.color, 0)
 
     assigns =
       assign(assigns,

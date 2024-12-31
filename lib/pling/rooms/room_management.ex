@@ -3,8 +3,37 @@ defmodule Pling.Rooms.RoomManagement do
   Handles room lifecycle operations (creation, termination, monitoring).
   """
 
-  alias Pling.Rooms.RoomServer
+  alias Pling.Rooms.{Room, Presence}
+  alias Room.Impl
   require Logger
+
+  @doc """
+  Joins a room, starting it if necessary, and initializes presence.
+  Returns the complete state including presence information.
+  """
+  def join_room(room_code, user_id, pid, game_mode \\ "vs") do
+    Logger.metadata(room_code: room_code, user_id: user_id)
+    Logger.info("User joining room", event: :room_join)
+
+    server_pid =
+      case get_room_pid(room_code) do
+        {:ok, pid} ->
+          pid
+
+        :error ->
+          {:ok, pid} =
+            start_room(room_code, game_mode, user_id)
+
+          pid
+      end
+
+    send(server_pid, {:monitor_liveview, pid})
+
+    {users, leader?} = Presence.initialize_presence(room_code, user_id)
+    current_state = Impl.get_state(room_code)
+
+    {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
+  end
 
   @doc """
   Starts a new room with the given code.
@@ -15,7 +44,7 @@ defmodule Pling.Rooms.RoomManagement do
 
     DynamicSupervisor.start_child(
       Pling.RoomSupervisor,
-      {RoomServer, {room_code, game_mode, leader_id}}
+      {Room.Server, {room_code, game_mode, leader_id}}
     )
   end
 
@@ -74,7 +103,7 @@ defmodule Pling.Rooms.RoomManagement do
       connection_count: count_clients(room_code) + 1
     )
 
-    RoomServer.monitor_liveview(room_code, pid)
+    Room.Impl.monitor_liveview(room_code, pid)
   end
 
   @doc """
@@ -111,24 +140,6 @@ defmodule Pling.Rooms.RoomManagement do
   def decrement_player_score(room_code, user_id, amount \\ 1) do
     with {:ok, pid} <- get_room_pid(room_code) do
       GenServer.call(pid, {:decrement_score, user_id, amount})
-    end
-  end
-
-  @doc """
-  Records a recent pling by a user in the given room.
-  """
-  def add_recent_pling(room_code, user_id) do
-    with {:ok, pid} <- get_room_pid(room_code) do
-      GenServer.call(pid, {:add_recent_pling, user_id})
-    end
-  end
-
-  @doc """
-  Clears the recent plings list for the given room.
-  """
-  def clear_recent_plings(room_code) do
-    with {:ok, pid} <- get_room_pid(room_code) do
-      GenServer.call(pid, :clear_recent_plings)
     end
   end
 
