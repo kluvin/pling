@@ -52,6 +52,15 @@ defmodule PlingWeb.RoomLive do
   # State and ephemeral(events(from(server)))
   # ------------------------------------------------------------------
   @impl true
+  def handle_info(%{event: "state_update", payload: %{state: new_state}}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       Map.take(new_state, [:playing?, :countdown, :selection, :scores, :recent_plings])
+     )}
+  end
+
+  @impl true
   def handle_info(
         %{event: "score_update", payload: %{identifier: identifier, score: score}},
         socket

@@ -3,7 +3,7 @@ defmodule Pling.Rooms.Room.Impl do
   Handles core business logic for room operations.
   """
 
-  alias Pling.{Presence, Rooms.RoomState, Rooms.MusicLibrary}
+  alias Pling.{Rooms.RoomState, Rooms.MusicLibrary}
 
   def initialize(room_code, game_mode, leader_id) do
     room_code
@@ -13,8 +13,6 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def play(state) do
-    broadcast(state.room_code, "spotify:play", %{playing?: true})
-
     state
     |> Map.put(:playing?, true)
     |> Map.put(:countdown, state.spotify_track_duration)
@@ -22,9 +20,6 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def pause(state) do
-    broadcast(state.room_code, "spotify:pause", %{playing?: false})
-    broadcast(state.room_code, "ring_bell", %{})
-
     state
     |> Map.put(:timer_ref, cancel_timer(state))
     |> reset_playback()
@@ -32,9 +27,7 @@ defmodule Pling.Rooms.Room.Impl do
 
   def update_track(state) do
     track = MusicLibrary.select_track(state.playlists, state.selection.playlist)
-    new_state = %{state | selection: %{playlist: state.selection.playlist, track: track}}
-    broadcast(state.room_code, "spotify:load_track", %{track: track})
-    new_state
+    %{state | selection: %{playlist: state.selection.playlist, track: track}}
   end
 
   def set_playlist(state, playlist) do
@@ -47,31 +40,16 @@ defmodule Pling.Rooms.Room.Impl do
   def process_tick(state) do
     new_state = tick(state)
 
-    if new_state.countdown != state.countdown do
-      broadcast(state.room_code, "countdown_update", %{countdown: new_state.countdown})
-    end
-
-    if new_state.playing? != state.playing? do
-      broadcast(state.room_code, "playback_update", %{playing?: new_state.playing?})
-    end
-
     if new_state.playing? do
       schedule_next_tick(new_state)
     else
-      new_state
+      %{new_state | timer_ref: nil}
     end
   end
 
   def update_score(state, identifier, amount) do
     current_score = Map.get(state.scores, identifier, 0)
-    new_state = put_in(state.scores[identifier], current_score + amount)
-
-    broadcast(state.room_code, "score_update", %{
-      identifier: identifier,
-      score: new_state.scores[identifier]
-    })
-
-    new_state
+    put_in(state.scores[identifier], current_score + amount)
   end
 
   def handle_liveview_down(room_code, _pid, _reason) do
@@ -117,7 +95,6 @@ defmodule Pling.Rooms.Room.Impl do
       |> Map.put(:countdown, state.spotify_track_duration)
       |> Map.put(:playing?, false)
 
-    broadcast(state.room_code, "ring_bell", %{})
     new_state
   end
 
@@ -147,13 +124,5 @@ defmodule Pling.Rooms.Room.Impl do
       [{pid, _}] -> {:ok, pid}
       [] -> :error
     end
-  end
-
-  defp broadcast(room_code, event, payload) do
-    PlingWeb.Endpoint.broadcast(Presence.topic(room_code), event, payload)
-  end
-
-  defp broadcast_from(from_pid, room_code, event, payload) do
-    PlingWeb.Endpoint.broadcast_from(from_pid, Presence.topic(room_code), event, payload)
   end
 end
