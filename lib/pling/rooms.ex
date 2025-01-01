@@ -34,24 +34,17 @@ defmodule Pling.Rooms do
   end
 
   def join_room(room_code, user_id, pid, game_mode \\ "vs") do
-    case get_room_pid(room_code) do
-      {:ok, _pid} ->
-        GenServer.call(via_tuple(room_code), {:monitor_liveview, pid})
-        {users, leader?} = Pling.Rooms.Presence.initialize_presence(room_code, user_id)
-        current_state = get_state(room_code)
-        {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
-
-      :error ->
-        DynamicSupervisor.start_child(
-          Pling.Rooms.RoomSupervisor,
-          {Server, {room_code, game_mode, user_id}}
-        )
-
-        GenServer.call(via_tuple(room_code), {:monitor_liveview, pid})
-        {users, leader?} = Pling.Rooms.Presence.initialize_presence(room_code, user_id)
-        current_state = get_state(room_code)
-        {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
+    if get_room_pid(room_code) == :error do
+      DynamicSupervisor.start_child(
+        Pling.Rooms.RoomSupervisor,
+        {Server, {room_code, game_mode, user_id}}
+      )
     end
+
+    GenServer.call(via_tuple(room_code), {:monitor_liveview, pid})
+    {users, leader?} = Pling.Rooms.Presence.initialize_presence(room_code, user_id)
+    current_state = get_state(room_code)
+    {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
   end
 
   defp via_tuple(room_code) do
