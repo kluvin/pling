@@ -8,7 +8,7 @@ defmodule Pling.Rooms.Room.Impl do
   def initialize(room_code, game_mode, leader_id) do
     room_code
     |> RoomState.initialize(game_mode, leader_id)
-    |> initialize_playlists()
+    |> Map.put(:playlists, MusicLibrary.load_playlists())
     |> update_track()
   end
 
@@ -71,12 +71,6 @@ defmodule Pling.Rooms.Room.Impl do
       :error ->
         :ok
     end
-  end
-
-  # Private functions
-
-  defp initialize_playlists(state) do
-    Map.put(state, :playlists, MusicLibrary.load_playlists())
   end
 
   defp tick(state) do
