@@ -35,7 +35,7 @@ defmodule Pling.Rooms.PlaybackTest do
       %{room_code: room_code} = create_test_room()
 
       Rooms.set_playlist(room_code, playlist.decade)
-      {:ok, _} = Rooms.start_playback(room_code)
+      {:ok, _} = Rooms.play(room_code)
 
       state = Rooms.handle_track_timeout(room_code)
       assert state.playing? == false
@@ -45,7 +45,7 @@ defmodule Pling.Rooms.PlaybackTest do
       %{room_code: room_code} = create_test_room()
 
       Rooms.set_playlist(room_code, playlist.decade)
-      {:ok, state} = Rooms.start_playback(room_code)
+      {:ok, state} = Rooms.play(room_code)
 
       # Should select a track from our playlist
       assert state.selection.track.id in [track1.id, track2.id]

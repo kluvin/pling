@@ -1,22 +1,67 @@
 defmodule Pling.Rooms do
   @moduledoc """
-  The Rooms context.
+  The Room API module - provides the public interface for room operations.
   """
 
-  alias Pling.Rooms.{RoomManagement, Presence, Playback, Scoring, Room}
-  require Logger
+  alias Pling.Rooms.Room.Server
 
-  defdelegate get_state(room_code), to: Room.Impl
+  def get_state(room_code) do
+    GenServer.call(via_tuple(room_code), :get_state)
+  end
 
-  defdelegate update_score(room_code, identifier, amount), to: Scoring
+  def update_score(room_code, identifier, amount) do
+    GenServer.cast(via_tuple(room_code), {:update_score, identifier, amount})
+  end
 
-  defdelegate start_playback(room_code), to: Playback
-  defdelegate stop_playback(room_code), to: Playback
-  defdelegate next_track(room_code), to: Playback
-  defdelegate set_playlist(room_code, playlist), to: Playback
-  defdelegate monitor_liveview(room_code, pid), to: RoomManagement
-  defdelegate handle_liveview_down(room_code, pid, reason), to: RoomManagement
-  defdelegate join_room(room_code, user_id, pid, game_mode \\ "vs"), to: RoomManagement
+  def play(room_code) do
+    GenServer.call(via_tuple(room_code), :play)
+  end
 
-  defdelegate update_presence(room_code, user_id), to: Presence
+  def pause(room_code) do
+    GenServer.call(via_tuple(room_code), :pause)
+  end
+
+  def update_track(room_code) do
+    GenServer.call(via_tuple(room_code), :update_track)
+  end
+
+  def set_playlist(room_code, playlist) do
+    GenServer.call(via_tuple(room_code), {:set_playlist, playlist})
+  end
+
+  def process_tick(room_code) do
+    GenServer.cast(via_tuple(room_code), :process_tick)
+  end
+
+  def join_room(room_code, user_id, pid, game_mode \\ "vs") do
+    case get_room_pid(room_code) do
+      {:ok, _pid} ->
+        GenServer.call(via_tuple(room_code), {:monitor_liveview, pid})
+        {users, leader?} = Pling.Rooms.Presence.initialize_presence(room_code, user_id)
+        current_state = get_state(room_code)
+        {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
+
+      :error ->
+        DynamicSupervisor.start_child(
+          Pling.Rooms.RoomSupervisor,
+          {Server, {room_code, game_mode, user_id}}
+        )
+
+        GenServer.call(via_tuple(room_code), {:monitor_liveview, pid})
+        {users, leader?} = Pling.Rooms.Presence.initialize_presence(room_code, user_id)
+        current_state = get_state(room_code)
+        {:ok, Map.merge(current_state, %{users: users, leader?: leader?})}
+    end
+  end
+
+  defp via_tuple(room_code) do
+    {:via, Registry, {Pling.Rooms.ServerRegistry, room_code}}
+  end
+
+  defp get_room_pid(room_code) do
+    case Registry.lookup(Pling.Rooms.ServerRegistry, room_code) do
+      [{pid, _}] -> {:ok, pid}
+      [] -> :error
+    end
+  end
 end

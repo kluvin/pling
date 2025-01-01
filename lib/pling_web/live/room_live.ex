@@ -3,6 +3,7 @@ defmodule PlingWeb.RoomLive do
   import PlingWeb.Components.PlaylistSelector
   alias Phoenix.LiveView.JS
   alias Pling.Rooms
+  alias Pling.Rooms.Presence
   require Logger
 
   @impl true
@@ -43,34 +44,35 @@ defmodule PlingWeb.RoomLive do
   # ------------------------------------------------------------------
   @impl true
   def handle_info(%{event: "presence_diff"}, socket) do
-    {users, leader?} = Rooms.update_presence(socket.assigns.room_code, socket.assigns.user_id)
-
-    Logger.info("Presence diff - leader status update",
-      user_id: socket.assigns.user_id,
-      leader?: leader?,
-      users: inspect(users)
-    )
-
+    {users, leader?} = Presence.update_presence(socket.assigns.room_code, socket.assigns.user_id)
     {:noreply, assign(socket, users: users, leader?: leader?)}
   end
 
   # ------------------------------------------------------------------
-  # State and ephemeral events from server
+  # State and ephemeral(events(from(server)))
   # ------------------------------------------------------------------
   @impl true
-  def handle_info(%{event: "state_update", payload: %{state: state}}, socket) do
-    Logger.info("LiveView received state update",
+  def handle_info(
+        %{event: "score_update", payload: %{identifier: identifier, score: score}},
+        socket
+      ) do
+    Logger.info("LiveView received score update",
       room_code: socket.assigns.room_code,
-      scores: inspect(state.scores),
-      assigns: inspect(Map.keys(socket.assigns))
+      identifier: identifier,
+      score: score
     )
 
-    {:noreply, assign(socket, state)}
+    {:noreply, update(socket, :scores, &Map.put(&1, identifier, score))}
+  end
+
+  @impl true
+  def handle_info(%{event: "countdown_update", payload: %{countdown: countdown}}, socket) do
+    {:noreply, assign(socket, :countdown, countdown)}
   end
 
   @impl true
   def handle_info(:tick, socket) do
-    Rooms.Playback.process_tick(socket.assigns.room_code)
+    Rooms.process_tick(socket.assigns.room_code)
     {:noreply, socket}
   end
 
@@ -95,8 +97,13 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_info(%{event: "spotify:toggle_play"}, socket) do
-    {:noreply, push_event(socket, "spotify:toggle_play", %{})}
+  def handle_info(%{event: "spotify:play"}, socket) do
+    {:noreply, push_event(socket, "spotify:play", %{})}
+  end
+
+  @impl true
+  def handle_info(%{event: "spotify:pause"}, socket) do
+    {:noreply, push_event(socket, "spotify:pause", %{})}
   end
 
   # ------------------------------------------------------------------
@@ -115,6 +122,11 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
+  def handle_event("toggle_playlist_selector", _params, socket) do
+    {:noreply, update(socket, :show_playlist, &(!&1))}
+  end
+
+  @impl true
   def handle_event("set_playlist", %{"decade" => decade}, socket) do
     Rooms.set_playlist(socket.assigns.room_code, decade)
     {:noreply, socket}
@@ -125,23 +137,18 @@ defmodule PlingWeb.RoomLive do
     current_state = Rooms.get_state(socket.assigns.room_code)
 
     if current_state.playing? do
-      Rooms.stop_playback(socket.assigns.room_code)
+      Rooms.pause(socket.assigns.room_code)
     else
-      Rooms.start_playback(socket.assigns.room_code)
+      Rooms.play(socket.assigns.room_code)
     end
 
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("next_track", _params, socket) do
-    Rooms.next_track(socket.assigns.room_code)
+  def handle_event("update_track", _params, socket) do
+    Rooms.update_track(socket.assigns.room_code)
     {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("toggle_playlist", _params, socket) do
-    {:noreply, update(socket, :show_playlist, &(!&1))}
   end
 
   @impl true
@@ -156,49 +163,8 @@ defmodule PlingWeb.RoomLive do
   end
 
   # ------------------------------------------------------------------
-  # Render
+  # Components
   # ------------------------------------------------------------------
-  @impl true
-  def render(assigns) do
-    ~H"""
-    <div class="w-full flex flex-col h-dvh space-y-4 py-4 justify-between" data-leader={@leader?}>
-      <.room_info room_code={@room_code} users={@users} user_id={@user_id} />
-      <.pling_button
-        playing?={@playing?}
-        countdown={@countdown}
-        timer_threshold={@timer_threshold}
-        leader?={@leader?}
-      />
-
-      <div class="grid grid-cols-3 w-full space-y-4 place-items-center">
-        <%= if @show_playlist do %>
-          <.playlist_grid selection={@selection} />
-        <% else %>
-          <%= if @game_mode == "vs" do %>
-            <.counter_button color="red" scores={@scores} />
-            <div class="flex flex-col items-center">
-              <.icon
-                :if={!@playing?}
-                name="hero-chevron-double-up-solid"
-                class="h-16 w-16 text-zinc-700"
-              />
-              <p :if={!@playing?} class="text-sm text-center font-semibold text-zinc-700">
-                {gettext("swipe to see song")}
-              </p>
-            </div>
-            <.counter_button color="blue" scores={@scores} />
-          <% else %>
-            <.render_scores {assigns} />
-          <% end %>
-        <% end %>
-        <.button phx-click="toggle_playlist" class="col-span-3 text-sm font-semibold">
-          {if @show_playlist, do: gettext("hide playlists"), else: gettext("show playlists")}
-        </.button>
-      </div>
-    </div>
-    """
-  end
-
   def room_info(assigns) do
     ~H"""
     <div class="w-full text-center space-y-2">
@@ -312,7 +278,7 @@ defmodule PlingWeb.RoomLive do
 
       <%= if @leader? do %>
         <div class="flex justify-center space-x-2">
-          <.button phx-click="next_track">
+          <.button phx-click="update_track">
             {gettext("Next Track")}
           </.button>
         </div>

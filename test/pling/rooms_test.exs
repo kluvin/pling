@@ -45,10 +45,10 @@ defmodule Pling.RoomsTest do
     test "starts and stops playback" do
       %{room_code: room_code} = create_test_room()
 
-      {:ok, state1} = Rooms.start_playback(room_code)
+      {:ok, state1} = Rooms.play(room_code)
       assert state1.playing? == true
 
-      {:ok, state2} = Rooms.stop_playback(room_code)
+      {:ok, state2} = Rooms.pause(room_code)
       assert state2.playing? == false
     end
   end

@@ -112,12 +112,16 @@ window.addEventListener("popstate", (_event) => {
   window.EmbedController?.pause();
 });
 
-window.addEventListener("phx:spotify:toggle_play", (_event) => {
-  window.EmbedController?.togglePlay();
+window.addEventListener("phx:spotify:play", (_event) => {
+  window.EmbedController?.play();
   const wrapper = document.querySelector(".embed-wrapper");
-  if (wrapper) {
-    wrapper.classList.toggle("hidden");
-  }
+  if (wrapper) wrapper.classList.remove("hidden");
+});
+
+window.addEventListener("phx:spotify:pause", (_event) => {
+  window.EmbedController?.pause();
+  const wrapper = document.querySelector(".embed-wrapper");
+  if (wrapper) wrapper.classList.add("hidden");
 });
 
 // connect if there are any LiveViews on the page

@@ -23,7 +23,7 @@ defmodule Pling.Application do
       PlingWeb.Endpoint,
       {Registry, keys: :unique, name: Pling.Rooms.ServerRegistry},
       {Registry, keys: :duplicate, name: Pling.Rooms.ClientRegistry},
-      {DynamicSupervisor, name: Pling.RoomSupervisor}
+      {DynamicSupervisor, strategy: :one_for_one, name: Pling.Rooms.RoomSupervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
