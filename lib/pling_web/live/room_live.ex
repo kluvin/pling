@@ -160,17 +160,6 @@ defmodule PlingWeb.RoomLive do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_event(
-        "adjust_score",
-        %{"user_id" => user_id, "amount" => amount},
-        %{assigns: %{game_mode: "ffa", leader?: true}} = socket
-      ) do
-    amount = String.to_integer(amount)
-    Rooms.update_score(socket.assigns.room_code, user_id, amount)
-    {:noreply, socket}
-  end
-
   # ------------------------------------------------------------------
   # Components
   # ------------------------------------------------------------------
