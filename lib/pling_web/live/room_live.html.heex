@@ -15,7 +15,7 @@
       <.playlist_grid selection={@selection} />
     <% else %>
       <%= if @game_mode == "vs" do %>
-        <.counter_button color="red" scores={@scores} />
+        <.counter_button counter_id="red" scores={@scores} />
         <div class="flex flex-col items-center">
           <.icon
             :if={!@playing?}
@@ -26,7 +26,7 @@
             {gettext("swipe to see song")}
           </p>
         </div>
-        <.counter_button color="blue" scores={@scores} />
+        <.counter_button counter_id="blue" scores={@scores} />
       <% else %>
         <.render_scores {assigns} />
       <% end %>

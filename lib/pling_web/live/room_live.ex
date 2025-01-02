@@ -76,14 +76,14 @@ defmodule PlingWeb.RoomLive do
   # UI Events -> Server Calls
   # ------------------------------------------------------------------
   @impl true
-  def handle_event("counter:increment", %{"color" => color}, socket) do
-    Rooms.update_score(socket.assigns.room_code, color, 1)
+  def handle_event("counter:increment", %{"counter_id" => counter_id}, socket) do
+    Rooms.update_score(socket.assigns.room_code, counter_id, 1)
     {:noreply, socket}
   end
 
   @impl true
-  def handle_event("counter:decrement", %{"color" => color}, socket) do
-    Rooms.update_score(socket.assigns.room_code, color, -1)
+  def handle_event("counter:decrement", %{"counter_id" => counter_id}, socket) do
+    Rooms.update_score(socket.assigns.room_code, counter_id, -1)
     {:noreply, socket}
   end
 
@@ -99,6 +99,11 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
+  def handle_event("toggle_play", _params, %{assigns: %{leader?: false}} = socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("toggle_play", _params, socket) do
     current_state = Rooms.get_state(socket.assigns.room_code)
 
@@ -108,6 +113,11 @@ defmodule PlingWeb.RoomLive do
       Rooms.play(socket.assigns.room_code)
     end
 
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("update_track", _params, %{assigns: %{leader?: false}} = socket) do
     {:noreply, socket}
   end
 
@@ -225,19 +235,11 @@ defmodule PlingWeb.RoomLive do
               </span>
               <%= if @leader? do %>
                 <div class="flex space-x-1">
-                  <.button
-                    phx-click="adjust_score"
-                    phx-value-user_id={user.user_id}
-                    phx-value-amount="1"
-                  >
-                    +1
-                  </.button>
-                  <.button
-                    phx-click="adjust_score"
-                    phx-value-user_id={user.user_id}
-                    phx-value-amount="-1"
-                  >
+                  <.button phx-click="counter:decrement" phx-value-counter_id={user.user_id}>
                     -1
+                  </.button>
+                  <.button phx-click="counter:increment" phx-value-counter_id={user.user_id}>
+                    +1
                   </.button>
                 </div>
               <% end %>
@@ -259,13 +261,13 @@ defmodule PlingWeb.RoomLive do
 
   defp counter_button(assigns) do
     {edge_class, bg_class} =
-      case assigns.color do
+      case assigns.counter_id do
         "blue" -> {"bg-blue-800", "bg-gradient-to-b from-blue-500 to-blue-600"}
         "red" -> {"bg-red-800", "bg-gradient-to-b from-red-500 to-red-600"}
         _ -> {"bg-gray-800", "bg-gradient-to-b from-gray-500 to-gray-600"}
       end
 
-    count_value = Map.get(assigns.scores || %{}, assigns.color, 0)
+    count_value = Map.get(assigns.scores || %{}, assigns.counter_id, 0)
 
     assigns =
       assign(assigns,
@@ -277,8 +279,8 @@ defmodule PlingWeb.RoomLive do
     ~H"""
     <div class="relative flex flex-col items-center gap-4">
       <button
-        id={"#{@color}-counter-incr"}
-        phx-click={JS.push("counter:increment", value: %{color: @color})}
+        id={"#{@counter_id}-counter-incr"}
+        phx-click={JS.push("counter:increment", value: %{counter_id: @counter_id})}
         class="pushable"
       >
         <span class="shadow"></span>
@@ -291,8 +293,8 @@ defmodule PlingWeb.RoomLive do
         </span>
       </button>
       <button
-        phx-click={JS.push("counter:decrement", value: %{color: @color})}
-        id={"#{@color}-counter-decr"}
+        phx-click={JS.push("counter:decrement", value: %{counter_id: @counter_id})}
+        id={"#{@counter_id}-counter-decr"}
         class="pushable self-center"
       >
         <span class="shadow"></span>
