@@ -11,14 +11,7 @@ defmodule PlingWeb.RoomLive do
         %{"user_id" => user_id},
         socket
       ) do
-    socket =
-      assign(socket,
-        room_code: room_code,
-        user_id: user_id,
-        show_playlist: false,
-        game_mode: game_mode,
-        current_track: nil
-      )
+    socket = init_assigns(socket, room_code, game_mode, user_id)
 
     if connected?(socket) do
       {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode)
@@ -30,13 +23,27 @@ defmodule PlingWeb.RoomLive do
        |> assign(state)
        |> maybe_load_track(state.selection.track)}
     else
-      {:ok, assign(socket, Rooms.get_state(room_code))}
+      {:ok,
+       socket
+       |> assign(Rooms.get_state(room_code))}
     end
   end
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok, redirect(socket, to: ~p"/login")}
+  end
+
+  defp init_assigns(socket, room_code, game_mode, user_id) do
+    assign(socket,
+      room_code: room_code,
+      user_id: user_id,
+      show_playlist: false,
+      game_mode: game_mode,
+      current_track: nil,
+      leader?: false,
+      users: []
+    )
   end
 
   # ------------------------------------------------------------------
@@ -150,27 +157,27 @@ defmodule PlingWeb.RoomLive do
     <div class="w-full text-center space-y-2">
       <div class="text-sm text-gray-500">{@room_code}</div>
       <div class="text-sm text-gray-500">
-        <%= if length(@users) == 1 do %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
-            {Enum.at(@users, 0).user_id}
-          </span>
-          {gettext("is here")}
+        <%= if @users == [] do %>
+          {gettext("Waiting for users...")}
         <% else %>
-          <span class={if Enum.at(@users, 0).user_id == @user_id, do: "font-bold"}>
-            {Enum.at(@users, 0).user_id}
-          </span>
-          {gettext("is joined by")}
-          <%= for {user, index} <- Enum.with_index(Enum.drop(@users, 1)) do %>
-            <span class={if user.user_id == @user_id, do: "font-bold"}>{user.user_id}</span>{if index <
-                                                                                                  length(
-                                                                                                    Enum.drop(
-                                                                                                      @users,
-                                                                                                      1
-                                                                                                    )
-                                                                                                  ) -
-                                                                                                    1,
-                                                                                                do:
-                                                                                                  ", "}
+          <%= if length(@users) == 1 do %>
+            <span class={if List.first(@users).user_id == @user_id, do: "font-bold"}>
+              {List.first(@users).user_id}
+            </span>
+            {gettext("is here")}
+          <% else %>
+            <span class={if List.first(@users).user_id == @user_id, do: "font-bold"}>
+              {List.first(@users).user_id}
+            </span>
+            {gettext("is joined by")}
+            <% other_users = fn -> Enum.drop(@users, 1) end %>
+            <% show_comma? = fn index, users -> index < length(users) - 1 end %>
+            <%= for {user, index} <- Enum.with_index(other_users.()) do %>
+              <span class={if user.user_id == @user_id, do: "font-bold"}>
+                {user.user_id}
+              </span>
+              {if show_comma?.(index, other_users.()), do: ", "}
+            <% end %>
           <% end %>
         <% end %>
       </div>
