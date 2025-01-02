@@ -4,7 +4,6 @@ defmodule PlingWeb.RoomLive do
   alias Phoenix.LiveView.JS
   alias Pling.Rooms
   alias Pling.Rooms.Presence
-  require Logger
 
   @impl true
   def mount(
@@ -53,36 +52,7 @@ defmodule PlingWeb.RoomLive do
   # ------------------------------------------------------------------
   @impl true
   def handle_info(%{event: "state_update", payload: %{state: new_state}}, socket) do
-    {:noreply,
-     assign(
-       socket,
-       Map.take(new_state, [:playing?, :countdown, :selection, :scores, :recent_plings])
-     )}
-  end
-
-  @impl true
-  def handle_info(
-        %{event: "score_update", payload: %{identifier: identifier, score: score}},
-        socket
-      ) do
-    Logger.info("LiveView received score update",
-      room_code: socket.assigns.room_code,
-      identifier: identifier,
-      score: score
-    )
-
-    {:noreply, update(socket, :scores, &Map.put(&1, identifier, score))}
-  end
-
-  @impl true
-  def handle_info(%{event: "countdown_update", payload: %{countdown: countdown}}, socket) do
-    {:noreply, assign(socket, :countdown, countdown)}
-  end
-
-  @impl true
-  def handle_info(:tick, socket) do
-    Rooms.process_tick(socket.assigns.room_code)
-    {:noreply, socket}
+    {:noreply, assign(socket, new_state)}
   end
 
   @impl true
