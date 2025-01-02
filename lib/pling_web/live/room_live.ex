@@ -16,7 +16,8 @@ defmodule PlingWeb.RoomLive do
         room_code: room_code,
         user_id: user_id,
         show_playlist: false,
-        game_mode: game_mode
+        game_mode: game_mode,
+        current_track: nil
       )
 
     if connected?(socket) do
@@ -27,7 +28,7 @@ defmodule PlingWeb.RoomLive do
       {:ok,
        socket
        |> assign(state)
-       |> push_event("spotify:load_track", %{track: state.selection.track})}
+       |> maybe_load_track(state.selection.track)}
     else
       {:ok, assign(socket, Rooms.get_state(room_code))}
     end
@@ -52,27 +53,13 @@ defmodule PlingWeb.RoomLive do
   # ------------------------------------------------------------------
   @impl true
   def handle_info(%{event: "state_update", payload: %{state: new_state}}, socket) do
-    {:noreply, assign(socket, new_state)}
+    socket = assign(socket, new_state)
+    {:noreply, maybe_load_track(socket, new_state.selection.track)}
   end
 
   @impl true
   def handle_info(%{event: "ring_bell"}, socket) do
     {:noreply, push_event(socket, "ring_bell", %{})}
-  end
-
-  @impl true
-  def handle_info(
-        %{event: "spotify:load_track", payload: %{track: track}},
-        %{assigns: %{leader?: true}} = socket
-      ) do
-    {:noreply, push_event(socket, "spotify:load_track", %{track: track})}
-  end
-
-  @impl true
-  def handle_info(%{event: "spotify:load_track"}, socket) do
-    # right now, only leader is getting a new track
-    # since no one else is meant to play audio
-    {:noreply, socket}
   end
 
   @impl true
@@ -129,6 +116,21 @@ defmodule PlingWeb.RoomLive do
     Rooms.update_track(socket.assigns.room_code)
     {:noreply, socket}
   end
+
+  # ------------------------------------------------------------------
+  # Private Functions
+  # ------------------------------------------------------------------
+  defp maybe_load_track(%{assigns: %{leader?: true}} = socket, track) do
+    if track != socket.assigns.current_track do
+      socket
+      |> assign(:current_track, track)
+      |> push_event("spotify:load_track", %{track: track})
+    else
+      socket
+    end
+  end
+
+  defp maybe_load_track(socket, _track), do: socket
 
   # ------------------------------------------------------------------
   # Components

@@ -55,7 +55,6 @@ defmodule Pling.Rooms.Room.Server do
   @impl true
   def handle_call(:update_track, _from, state) do
     new_state = Impl.update_track(state)
-    broadcast(new_state, "spotify:load_track", %{track: new_state.selection.track})
     broadcast_state_update(new_state)
     {:reply, new_state, new_state}
   end
@@ -63,7 +62,6 @@ defmodule Pling.Rooms.Room.Server do
   @impl true
   def handle_call({:set_playlist, playlist}, _from, state) do
     new_state = Impl.set_playlist(state, playlist)
-    broadcast(new_state, "spotify:load_track", %{track: new_state.selection.track})
     broadcast_state_update(new_state)
     {:reply, new_state, new_state}
   end
