@@ -49,7 +49,15 @@ defmodule Pling.Rooms.Room.Impl do
 
   def update_score(state, identifier, amount) do
     current_score = Map.get(state.scores, identifier, 0)
-    put_in(state.scores[identifier], current_score + amount)
+    new_state = put_in(state.scores[identifier], current_score + amount)
+
+    if state.game_mode == "vs" do
+      new_state
+      |> update_track()
+      |> reset_playback()
+    else
+      new_state
+    end
   end
 
   def handle_liveview_down(room_code, _pid, _reason) do

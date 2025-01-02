@@ -88,8 +88,8 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
 };
 
 window.addEventListener("phx:spotify:load_track", (event) => {
-  console.log("Loading track:", event.detail.track);
   const track = event.detail.track;
+  console.log("Loading track:", track.uri);
   window.EmbedController?.loadUri(track.uri);
 
   togglePlayLocked = true;
