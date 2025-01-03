@@ -45,3 +45,5 @@ npm-debug.log
 *.db.wal
 
 .elixir_ls
+
+*.env
