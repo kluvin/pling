@@ -24,23 +24,23 @@ let Hooks = {
 
     handlePointerDown() {
       console.log("click");
-      if (togglePlayLocked) {
-        setTimeout(() => {
+      setTimeout(() => {
+        if (togglePlayLocked) {
           this.pushEvent("toggle_play");
           window.EmbedController?.togglePlay();
           const wrapper = document.querySelector(".embed-wrapper");
           if (wrapper) {
-            wrapper.classList.toggle("hidden");
+            // wrapper.classList.toggle("hidden");
           }
-        }, 200);
-      } else {
-        this.pushEvent("toggle_play");
-        window.EmbedController?.togglePlay();
-        const wrapper = document.querySelector(".embed-wrapper");
-        if (wrapper) {
-          wrapper.classList.toggle("hidden");
+        } else {
+          this.pushEvent("toggle_play");
+          window.EmbedController?.togglePlay();
+          const wrapper = document.querySelector(".embed-wrapper");
+          if (wrapper) {
+            // wrapper.classList.toggle("hidden");
+          }
         }
-      }
+      }, 300);
     },
   },
 };
@@ -109,13 +109,13 @@ window.addEventListener("popstate", (_event) => {
 window.addEventListener("phx:spotify:play", (_event) => {
   window.EmbedController?.play();
   const wrapper = document.querySelector(".embed-wrapper");
-  if (wrapper) wrapper.classList.remove("hidden");
+  // if (wrapper) wrapper.classList.remove("hidden");
 });
 
 window.addEventListener("phx:spotify:pause", (_event) => {
   window.EmbedController?.pause();
   const wrapper = document.querySelector(".embed-wrapper");
-  if (wrapper) wrapper.classList.add("hidden");
+  // if (wrapper) wrapper.classList.add("hidden");
 });
 
 // connect if there are any LiveViews on the page
