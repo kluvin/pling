@@ -4,28 +4,51 @@ defmodule PlingWeb.RoomLive do
   alias Phoenix.LiveView.JS
   alias Pling.Rooms
   alias Pling.Rooms.Presence
+  require Logger
 
   @impl true
   def mount(
-        %{"room_code" => room_code, "game_mode" => game_mode},
+        %{"room_code" => room_code, "game_mode" => game_mode} = params,
         %{"user_id" => user_id},
         socket
       ) do
     socket = init_assigns(socket, room_code, game_mode, user_id)
 
     if connected?(socket) do
-      {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode)
+      Logger.debug("LiveView connected for room: #{room_code}")
 
+      {:ok, state} =
+        case params do
+          %{"playlist_id" => playlist_id} ->
+            case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(playlist_id) do
+              {:ok, :first_track_saved, playlist} ->
+                {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
+                Rooms.set_playlist(room_code, playlist_id)
+                state
+
+              {:ok, _, playlist} ->
+                Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
+
+              {:error, reason} ->
+                Logger.error("Failed to load playlist in UI: #{inspect(reason)}")
+                Rooms.join_room(room_code, user_id, self(), game_mode)
+            end
+
+          _ ->
+            Rooms.join_room(room_code, user_id, self(), game_mode)
+        end
+
+      {users, leader?} = Presence.initialize_presence(room_code, user_id)
       Phoenix.PubSub.subscribe(Pling.PubSub, "room:#{room_code}")
 
       {:ok,
        socket
+       |> assign(users: users, leader?: leader?)
        |> assign(state)
        |> maybe_load_track(state.selection.track)}
     else
-      {:ok,
-       socket
-       |> assign(Rooms.get_state(room_code))}
+      Logger.debug("LiveView initial render for room: #{room_code}")
+      {:ok, init_assigns(socket, room_code, game_mode, user_id)}
     end
   end
 
@@ -42,7 +65,14 @@ defmodule PlingWeb.RoomLive do
       game_mode: game_mode,
       current_track: nil,
       leader?: false,
-      users: []
+      users: [],
+      selection: %{playlist: nil, track: nil},
+      playlists: nil,
+      playing?: false,
+      countdown: nil,
+      timer_threshold: 10,
+      scores: %{},
+      recent_plings: []
     )
   end
 
@@ -100,8 +130,8 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_event("set_playlist", %{"decade" => decade}, socket) do
-    Rooms.set_playlist(socket.assigns.room_code, decade)
+  def handle_event("set_playlist", %{"playlist_id" => playlist_id}, socket) do
+    Rooms.set_playlist(socket.assigns.room_code, playlist_id)
     {:noreply, socket}
   end
 
@@ -156,37 +186,94 @@ defmodule PlingWeb.RoomLive do
     ~H"""
     <div class="w-full text-center space-y-2">
       <div class="text-sm text-gray-500">{@room_code}</div>
+
+      <.playlist_info selection={@selection} playlists={@playlists} />
+
       <div class="text-sm text-gray-500">
-        <%= if @users == [] do %>
-          {gettext("Waiting for users...")}
-        <% else %>
-          <%= if length(@users) == 1 do %>
-            <span class={if List.first(@users).user_id == @user_id, do: "font-bold"}>
-              {List.first(@users).user_id}
-            </span>
-            {gettext("is here")}
-          <% else %>
-            <span class={if List.first(@users).user_id == @user_id, do: "font-bold"}>
-              {List.first(@users).user_id}
-            </span>
-            {gettext("is joined by")}
-            <% other_users = fn -> Enum.drop(@users, 1) end %>
-            <% show_comma? = fn index, users -> index < length(users) - 1 end %>
-            <%= for {user, index} <- Enum.with_index(other_users.()) do %>
-              <span class={if user.user_id == @user_id, do: "font-bold"}>
-                {user.user_id}
-              </span>
-              {if show_comma?.(index, other_users.()), do: ", "}
-            <% end %>
-          <% end %>
-        <% end %>
+        <.user_list users={@users} user_id={@user_id} />
       </div>
     </div>
     """
   end
 
+  defp playlist_info(%{selection: selection, playlists: playlists} = assigns)
+       when not is_nil(selection) and not is_nil(playlists) do
+    playlist_name =
+      cond do
+        selection.playlist && Map.has_key?(playlists, selection.playlist) ->
+          Map.get(playlists, selection.playlist).name
+
+        selection.track && Map.has_key?(playlists, selection.track.playlist_spotify_id) ->
+          Map.get(playlists, selection.track.playlist_spotify_id).name
+
+        selection.track ->
+          "Unknown Playlist"
+
+        true ->
+          nil
+      end
+
+    assigns = assign(assigns, :playlist_name, playlist_name)
+
+    ~H"""
+    <div class="text-xs text-gray-400">
+      <%= if @playlist_name do %>
+        {@playlist_name}
+      <% end %>
+    </div>
+    """
+  end
+
+  defp playlist_info(assigns), do: ~H""
+
+  defp user_list(%{users: []} = assigns) do
+    ~H"""
+    {gettext("Waiting for users...")}
+    """
+  end
+
+  defp user_list(%{users: [single_user], user_id: user_id} = assigns) do
+    assigns =
+      assigns
+      |> assign(:is_current_user?, single_user.user_id == user_id)
+      |> assign(:single_user, single_user)
+
+    ~H"""
+    <span class={if @is_current_user?, do: "font-bold"}>
+      {@single_user.user_id}
+    </span>
+    {gettext("is here")}
+    """
+  end
+
+  defp user_list(%{users: [first_user | other_users], user_id: user_id} = assigns) do
+    other_users_with_current =
+      Enum.map(other_users, fn user ->
+        %{user: user, is_current?: user.user_id == user_id}
+      end)
+
+    assigns =
+      assigns
+      |> assign(:first_user, first_user)
+      |> assign(:other_users_with_current, other_users_with_current)
+      |> assign(:is_first_user?, first_user.user_id == user_id)
+
+    ~H"""
+    <span class={if @is_first_user?, do: "font-bold"}>
+      {@first_user.user_id}
+    </span>
+    {gettext("is joined by")}
+    <%= for {%{user: user, is_current?: is_current?}, index} <- Enum.with_index(@other_users_with_current) do %>
+      <span class={if is_current?, do: "font-bold"}>
+        {user.user_id}
+      </span>
+      {if index < length(@other_users_with_current) - 1, do: ", "}
+    <% end %>
+    """
+  end
+
   def pling_button(assigns) do
-    assigns = assign(assigns, :disabled?, !assigns.leader? && !assigns.playing?)
+    assigns = assign(assigns, :disabled?, !assigns.playing? && !assigns.leader?)
 
     ~H"""
     <div id="start" phx-hook="PlingButton" class="flex place-content-center w-full">
@@ -317,15 +404,23 @@ defmodule PlingWeb.RoomLive do
     """
   end
 
-  defp playlist_grid(assigns) do
+  defp playlist_grid(%{selection: selection, playlists: playlists} = assigns) do
+    playlists_with_active =
+      if playlists do
+        Enum.map(playlists, fn {_id, playlist} ->
+          Map.put(playlist, :active?, selection.playlist == playlist.spotify_id)
+        end)
+      else
+        []
+      end
+
+    assigns = assign(assigns, :playlists_with_active, playlists_with_active)
+
     ~H"""
     <div class="col-span-3 grid grid-cols-3 place-items-center gap-4 rounded w-full">
-      <.playlist decade="50s" active?={@selection.playlist == "50s"} />
-      <.playlist decade="60s" active?={@selection.playlist == "60s"} />
-      <.playlist decade="70s" active?={@selection.playlist == "70s"} />
-      <.playlist decade="80s" active?={@selection.playlist == "80s"} />
-      <.playlist decade="90s" active?={@selection.playlist == "90s"} />
-      <.playlist decade="mix" active?={@selection.playlist == "mix"} />
+      <%= for playlist <- @playlists_with_active do %>
+        <.playlist id={playlist.spotify_id} name={playlist.name} active?={playlist.active?} />
+      <% end %>
     </div>
     """
   end

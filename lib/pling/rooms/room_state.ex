@@ -17,12 +17,15 @@ defmodule Pling.Rooms.RoomState do
       timer_ref: nil,
       timer_threshold: 10,
       spotify_track_duration: @default_track_duration,
-      selection: %{playlist: "90s", track: nil},
       playlists: nil,
       room_code: room_code,
       game_mode: game_mode,
       leader_id: leader_id,
-      recent_plings: []
+      recent_plings: [],
+      selection: %{
+        playlist: nil,
+        track: nil
+      }
     }
   end
 
@@ -31,12 +34,24 @@ defmodule Pling.Rooms.RoomState do
       playing?: state.playing?,
       countdown: state.countdown,
       timer_threshold: state.timer_threshold,
-      selection: Map.take(state.selection, [:track, :playlist]),
-      playlists: state.playlists,
+      playlists: format_playlists(state.playlists),
       game_mode: state.game_mode,
       scores: state.scores,
       leader_id: state.leader_id,
-      recent_plings: state.recent_plings
+      recent_plings: state.recent_plings,
+      selection: state.selection
     }
+  end
+
+  defp format_playlist(nil), do: nil
+  defp format_playlist(playlist), do: Map.take(playlist, [:spotify_id, :name])
+
+  defp format_playlists(nil), do: nil
+
+  defp format_playlists(playlists) do
+    playlists
+    |> Map.new(fn {spotify_id, playlist} ->
+      {spotify_id, format_playlist(playlist)}
+    end)
   end
 end

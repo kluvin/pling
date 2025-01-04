@@ -19,7 +19,7 @@ defmodule Pling.MixProject do
   def application do
     [
       mod: {Pling.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :tesla]
     ]
   end
 
@@ -56,10 +56,10 @@ defmodule Pling.MixProject do
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.20"},
+      {:req, "~> 0.5.0"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
       {:tesla, "~> 1.7"},
-      {:hackney, "~> 1.17"},
       {:jason, "~> 1.4"}
     ]
   end

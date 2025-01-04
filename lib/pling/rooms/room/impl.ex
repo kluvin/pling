@@ -3,13 +3,42 @@ defmodule Pling.Rooms.Room.Impl do
   Handles core business logic for room operations.
   """
 
-  alias Pling.{Rooms.RoomState, Rooms.MusicLibrary}
+  alias Pling.{Rooms.RoomState, Playlists.MusicLibrary}
+  require Logger
 
-  def initialize(room_code, game_mode, leader_id) do
-    room_code
-    |> RoomState.initialize(game_mode, leader_id)
-    |> Map.put(:playlists, MusicLibrary.load_playlists())
-    |> update_track()
+  def initialize(room_code, game_mode, leader_id, playlist \\ nil) do
+    initial_state = RoomState.initialize(room_code, game_mode, leader_id)
+    playlists = MusicLibrary.load_playlists()
+
+    state =
+      if playlist do
+        # Merge the custom playlist with existing playlists
+        updated_playlists = Map.put(playlists, playlist.spotify_id, playlist)
+
+        %{
+          initial_state
+          | playlists: updated_playlists,
+            selection: %{playlist: playlist.spotify_id, track: nil}
+        }
+      else
+        if Enum.empty?(playlists) do
+          Logger.warning("No playlists found in database, room may not function correctly")
+
+          %{
+            initial_state
+            | playlists: %{
+                "6ZSeHvrhmEH4erjxudpULB" => %{
+                  spotify_id: "6ZSeHvrhmEH4erjxudpULB",
+                  name: "Default Playlist"
+                }
+              }
+          }
+        else
+          %{initial_state | playlists: playlists}
+        end
+      end
+
+    update_track(state)
   end
 
   def play(state) do
@@ -26,11 +55,27 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def update_track(state) do
-    track = MusicLibrary.select_track(state.playlists, state.selection.playlist)
-    %{state | selection: %{playlist: state.selection.playlist, track: track}}
+    case select_track(state) do
+      nil -> state
+      track -> %{state | selection: %{playlist: state.selection.playlist, track: track}}
+    end
   end
 
-  def set_playlist(state, playlist) do
+  defp select_track(%{playlists: nil}), do: nil
+
+  defp select_track(%{selection: %{playlist: nil}, playlists: playlists})
+       when not is_nil(playlists) do
+    MusicLibrary.select_track(playlists, nil)
+  end
+
+  defp select_track(%{selection: %{playlist: playlist_id}, playlists: playlists})
+       when not is_nil(playlists) do
+    MusicLibrary.select_track(playlists, playlist_id)
+  end
+
+  def set_playlist(state, playlist_id) do
+    playlist = state.playlists[playlist_id]
+
     state
     |> Map.put(:selection, %{playlist: playlist, track: nil})
     |> update_track()

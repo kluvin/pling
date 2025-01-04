@@ -13,9 +13,9 @@ defmodule PlingWeb.Components.PlaylistSelector do
     <button
       class={"px-4 py-2 rounded " <> @active_class}
       phx-click="set_playlist"
-      phx-value-decade={@decade}
+      phx-value-playlist_id={@id}
     >
-      {@decade}
+      {@name}
     </button>
     """
   end

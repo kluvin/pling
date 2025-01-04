@@ -1,29 +1,25 @@
 alias Pling.Repo
-alias Pling.Rooms.{Playlist, Track}
+alias Pling.Playlists.{MusicLibrary, Playlist}
 
-# Define the decades and their corresponding JSON files
+# Define the decade playlists from Spotify
 playlists = %{
-  "50s" => Path.join(:code.priv_dir(:pling), "static/lists/50s.json"),
-  "60s" => Path.join(:code.priv_dir(:pling), "static/lists/60s.json"),
-  "70s" => Path.join(:code.priv_dir(:pling), "static/lists/70s.json"),
-  "80s" => Path.join(:code.priv_dir(:pling), "static/lists/80s.json"),
-  "90s" => Path.join(:code.priv_dir(:pling), "static/lists/90s.json")
+  "50s" => "6ZSeHvrhmEH4erjxudpULB",
+  "60s" => "6ZSeHvrhmEH4erjxudpULB",
+  "70s" => "6ZSeHvrhmEH4erjxudpULB",
+  "80s" => "6ZSeHvrhmEH4erjxudpULB",
+  "90s" => "6ZSeHvrhmEH4erjxudpULB"
 }
 
 # Import each playlist
-Enum.each(playlists, fn {decade, path} ->
+Enum.each(playlists, fn {decade, spotify_id} ->
   # Skip if playlist already exists
-  unless Repo.get_by(Playlist, decade: decade) do
-    playlist = Repo.insert!(%Playlist{name: "#{decade} Hits", decade: decade})
+  unless Repo.get(Playlist, spotify_id) do
+    case MusicLibrary.get_or_fetch_playlist(spotify_id) do
+      {:error, reason} ->
+        IO.puts("Failed to import #{decade} playlist (#{spotify_id}): #{inspect(reason)}")
 
-    uris = path |> File.read!() |> Jason.decode!()
-
-    Enum.each(uris, fn uri ->
-      %Track{}
-      |> Track.changeset(%{uri: uri, playlist_id: playlist.id})
-      |> Repo.insert!()
-    end)
-
-    IO.puts("Imported #{decade} playlist with #{length(uris)} tracks")
+      playlist ->
+        IO.puts("Imported #{decade} playlist: #{playlist.name}")
+    end
   end
 end)

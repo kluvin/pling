@@ -3,7 +3,6 @@ defmodule PlingWeb.Router do
   import Phoenix.LiveView.Router
 
   import Plug.BasicAuth
-  # use PhoenixAnalytics.Web, :router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -24,7 +23,6 @@ defmodule PlingWeb.Router do
 
   scope "/", PlingWeb do
     pipe_through [:browser, :dashboard_auth]
-    # phoenix_analytics_dashboard("/analytics")
   end
 
   scope "/", PlingWeb do
@@ -33,13 +31,12 @@ defmodule PlingWeb.Router do
     get "/login", LoginController, :login
     get "/logout", LoginController, :logout
 
-    # Protect these routes with authentication
     pipe_through :require_login
     live "/", HomeLive
     live "/:game_mode/:room_code", RoomLive
+    live "/:game_mode/:room_code/list/:playlist_id", RoomLive
   end
 
-  # Add authentication pipeline
   pipeline :require_login do
     plug :ensure_authenticated
   end
