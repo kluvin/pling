@@ -74,10 +74,8 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def set_playlist(state, playlist_id) do
-    playlist = state.playlists[playlist_id]
-
     state
-    |> Map.put(:selection, %{playlist: playlist, track: nil})
+    |> Map.put(:selection, %{playlist: playlist_id, track: nil})
     |> update_track()
     |> reset_playback()
   end

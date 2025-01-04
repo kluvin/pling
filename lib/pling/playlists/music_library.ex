@@ -23,11 +23,11 @@ defmodule Pling.Playlists.MusicLibrary do
   Gets all tracks from all playlists when playlist is "mix",
   otherwise gets tracks for the specified playlist.
   """
-  def get_tracks(_playlists, "mix") do
+  def get_tracks(playlist_id, _playlists) when playlist_id == "mix" do
     Repo.all(Track)
   end
 
-  def get_tracks(_playlists, playlist_id) when is_binary(playlist_id) do
+  def get_tracks(playlist_id, _playlists) when is_binary(playlist_id) do
     Track
     |> where([t], t.playlist_spotify_id == ^playlist_id)
     |> Repo.all()
@@ -52,8 +52,7 @@ defmodule Pling.Playlists.MusicLibrary do
   def select_track(_playlists, nil), do: nil
 
   def select_track(playlists, playlist_id) do
-    playlists
-    |> get_tracks(playlist_id)
+    get_tracks(playlist_id, playlists)
     |> random_track()
   end
 
