@@ -15,6 +15,11 @@
     timer_threshold={@timer_threshold}
     leader?={@leader?}
   />
+  <%= if @leader? do %>
+    <.button phx-click="update_track" class="mx-auto">
+      {gettext("Next Track")}
+    </.button>
+  <% end %>
 
   <div class="grid grid-cols-3 w-full space-y-4 place-items-center">
     <%= if @show_playlist do %>

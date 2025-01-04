@@ -125,8 +125,8 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_event("toggle_playlist_selector", _params, socket) do
-    {:noreply, update(socket, :show_playlist, &(!&1))}
+  def handle_event("toggle_playlist_selector", _, socket) do
+    {:noreply, assign(socket, show_playlist: !socket.assigns.show_playlist)}
   end
 
   @impl true
@@ -200,17 +200,18 @@ defmodule PlingWeb.RoomLive do
        when not is_nil(selection) and not is_nil(playlists) do
     playlist_name =
       cond do
+        # Get playlist name directly from the playlists map using playlist ID
         selection.playlist && Map.has_key?(playlists, selection.playlist) ->
           Map.get(playlists, selection.playlist).name
 
+        # Get playlist name from track's playlist_spotify_id
         selection.track && Map.has_key?(playlists, selection.track.playlist_spotify_id) ->
           Map.get(playlists, selection.track.playlist_spotify_id).name
 
-        selection.track ->
-          "Unknown Playlist"
-
         true ->
+          # Track exists but playlist not found, nothing.
           nil
+          "Unknown Playlist"
       end
 
     assigns = assign(assigns, :playlist_name, playlist_name)
@@ -341,14 +342,6 @@ defmodule PlingWeb.RoomLive do
           </div>
         <% end %>
       </div>
-
-      <%= if @leader? do %>
-        <div class="flex justify-center space-x-2">
-          <.button phx-click="update_track">
-            {gettext("Next Track")}
-          </.button>
-        </div>
-      <% end %>
     </div>
     """
   end

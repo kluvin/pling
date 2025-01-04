@@ -14,28 +14,9 @@ defmodule Pling.Rooms.Room.Impl do
       if playlist do
         # Merge the custom playlist with existing playlists
         updated_playlists = Map.put(playlists, playlist.spotify_id, playlist)
-
-        %{
-          initial_state
-          | playlists: updated_playlists,
-            selection: %{playlist: playlist.spotify_id, track: nil}
-        }
+        %{initial_state | playlists: updated_playlists}
       else
-        if Enum.empty?(playlists) do
-          Logger.warning("No playlists found in database, room may not function correctly")
-
-          %{
-            initial_state
-            | playlists: %{
-                "6ZSeHvrhmEH4erjxudpULB" => %{
-                  spotify_id: "6ZSeHvrhmEH4erjxudpULB",
-                  name: "Default Playlist"
-                }
-              }
-          }
-        else
-          %{initial_state | playlists: playlists}
-        end
+        %{initial_state | playlists: playlists}
       end
 
     update_track(state)
@@ -55,22 +36,12 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def update_track(state) do
-    case select_track(state) do
-      nil -> state
-      track -> %{state | selection: %{playlist: state.selection.playlist, track: track}}
-    end
+    track = select_track(state)
+    %{state | selection: %{playlist: state.selection.playlist, track: track}}
   end
 
-  defp select_track(%{playlists: nil}), do: nil
-
-  defp select_track(%{selection: %{playlist: nil}, playlists: playlists})
-       when not is_nil(playlists) do
-    MusicLibrary.select_track(playlists, nil)
-  end
-
-  defp select_track(%{selection: %{playlist: playlist_id}, playlists: playlists})
-       when not is_nil(playlists) do
-    MusicLibrary.select_track(playlists, playlist_id)
+  defp select_track(%{playlists: playlists} = state) do
+    MusicLibrary.select_track(playlists, state.selection.playlist)
   end
 
   def set_playlist(state, playlist_id) do

@@ -4,6 +4,7 @@ defmodule Pling.Rooms.RoomState do
   """
 
   @default_track_duration 30
+  @default_playlist_id "6ZSeHvrhmEH4erjxudpULB"
 
   def initialize(room_code, game_mode \\ "vs", leader_id \\ nil) do
     if leader_id == nil do
@@ -17,13 +18,13 @@ defmodule Pling.Rooms.RoomState do
       timer_ref: nil,
       timer_threshold: 10,
       spotify_track_duration: @default_track_duration,
-      playlists: nil,
+      playlists: %{},
       room_code: room_code,
       game_mode: game_mode,
       leader_id: leader_id,
       recent_plings: [],
       selection: %{
-        playlist: nil,
+        playlist: @default_playlist_id,
         track: nil
       }
     }
@@ -43,12 +44,9 @@ defmodule Pling.Rooms.RoomState do
     }
   end
 
-  defp format_playlist(nil), do: nil
   defp format_playlist(playlist), do: Map.take(playlist, [:spotify_id, :name])
 
-  defp format_playlists(nil), do: nil
-
-  defp format_playlists(playlists) do
+  defp format_playlists(playlists) when is_map(playlists) do
     playlists
     |> Map.new(fn {spotify_id, playlist} ->
       {spotify_id, format_playlist(playlist)}

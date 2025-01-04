@@ -41,17 +41,9 @@ defmodule Pling.Playlists.MusicLibrary do
 
   @doc """
   Selects a random track from the specified playlist.
-  Returns nil if no tracks are found.
+  If no playlist is specified or if playlists map is empty, uses the default playlist.
   """
-  def select_track(playlists, nil) when is_map(playlists) and map_size(playlists) > 0 do
-    # If no playlist specified, pick a random one
-    {playlist_id, _} = Enum.random(playlists)
-    select_track(playlists, playlist_id)
-  end
-
-  def select_track(_playlists, nil), do: nil
-
-  def select_track(playlists, playlist_id) do
+  def select_track(playlists, playlist_id) when is_map(playlists) do
     get_tracks(playlist_id, playlists)
     |> random_track()
   end
