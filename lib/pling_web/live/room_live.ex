@@ -22,8 +22,8 @@ defmodule PlingWeb.RoomLive do
           %{"playlist_id" => playlist_id} ->
             case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(playlist_id) do
               {:ok, :first_track_saved, playlist} ->
-                {:ok, state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
-                Rooms.set_playlist(room_code, playlist_id)
+                {:ok, _state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
+                {:ok, state} = Rooms.set_playlist(room_code, playlist_id)
                 state
 
               {:ok, _, playlist} ->
@@ -39,7 +39,7 @@ defmodule PlingWeb.RoomLive do
         end
 
       {users, leader?} = Presence.initialize_presence(room_code, user_id)
-      Phoenix.PubSub.subscribe(Pling.PubSub, "room:#{room_code}")
+      PlingWeb.Endpoint.subscribe("room:#{room_code}")
 
       {:ok,
        socket

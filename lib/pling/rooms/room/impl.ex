@@ -12,11 +12,17 @@ defmodule Pling.Rooms.Room.Impl do
 
     state =
       if playlist do
-        # Merge the custom playlist with existing playlists
         updated_playlists = Map.put(playlists, playlist.spotify_id, playlist)
-        %{initial_state | playlists: updated_playlists}
+        track = MusicLibrary.select_track(updated_playlists, playlist.spotify_id)
+
+        %{
+          initial_state
+          | playlists: updated_playlists,
+            selection: %{playlist: playlist.spotify_id, track: track}
+        }
       else
-        %{initial_state | playlists: playlists}
+        initial_state = %{initial_state | playlists: playlists}
+        update_track(initial_state)
       end
 
     update_track(state)
@@ -45,7 +51,10 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def set_playlist(state, playlist_id) do
+    playlists = MusicLibrary.load_playlists()
+
     state
+    |> Map.put(:playlists, playlists)
     |> Map.put(:selection, %{playlist: playlist_id, track: nil})
     |> update_track()
     |> reset_playback()

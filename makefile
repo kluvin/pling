@@ -29,10 +29,21 @@ reset_db:
 # ops commands for prod. should be automated.
 # some of this toruble is due to db lock conflicts with duckdb
 prod_seed:
-	fly ssh console
-	/app/bin/pling eval "Application.ensure_all_started(:pling); Code.eval_file(\"/app/lib/pling-0.1.0/priv/repo/seeds.exs\")"
+	fly ssh console -C "\
+		/app/bin/pling eval 'Application.ensure_all_started(:pling)' && \
+		/app/bin/pling eval 'Code.eval_file(\"/app/lib/pling-0.1.0/priv/repo/seeds.exs\")'"
 
 prod_migrate:
-	fly ssh console
-	/app/bin/pling remote
-	Pling.Release.migrate()
+	fly ssh console -C "\
+		/app/bin/pling eval 'Application.load(:pling)' && \
+		/app/bin/pling eval 'Pling.Release.migrate()'"
+
+prod_reset:
+	fly ssh console -C "\
+		rm -f /data/pling.db* && \
+		/app/bin/pling eval 'Pling.Release.migrate()' && \
+		/app/bin/pling eval 'Application.load(:pling)' && \
+		/app/bin/pling eval 'Application.put_env(:pling, :server, true)' && \
+		/app/bin/pling eval 'Application.ensure_all_started(:pling)' && \
+		/app/bin/pling eval ':timer.sleep(2000)' && \
+		/app/bin/pling eval 'Code.eval_file(\"/app/lib/pling-0.1.0/priv/repo/seeds.exs\")'"

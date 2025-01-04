@@ -8,6 +8,8 @@ defmodule Pling.Playlists.MusicLibrary do
   alias Pling.Repo
   alias Pling.Playlists.{Playlist, Track}
 
+  @notification_key :first_track_notified
+
   @doc """
   Loads all playlists from the database and returns them as a map with spotify_id keys.
   """
@@ -28,9 +30,14 @@ defmodule Pling.Playlists.MusicLibrary do
   end
 
   def get_tracks(playlist_id, _playlists) when is_binary(playlist_id) do
-    Track
-    |> where([t], t.playlist_spotify_id == ^playlist_id)
-    |> Repo.all()
+    Playlist
+    |> where([p], p.spotify_id == ^playlist_id)
+    |> preload(:tracks)
+    |> Repo.one()
+    |> case do
+      nil -> []
+      playlist -> playlist.tracks
+    end
   end
 
   @doc """
@@ -57,6 +64,7 @@ defmodule Pling.Playlists.MusicLibrary do
       nil ->
         ref = make_ref()
         parent = self()
+        notification_agent = Process.spawn(fn -> receive do: (_ -> :ok) end, [])
 
         callback = fn
           %{"playlist_info" => info} ->
@@ -72,25 +80,55 @@ defmodule Pling.Playlists.MusicLibrary do
             saved_playlist
 
           %{"track" => track} ->
-            track_entry = %Track{
-              spotify_id: track["id"],
-              title: track["name"],
-              artists: Enum.map(track["artists"], & &1["name"]),
-              uri: track["uri"],
-              popularity: track["popularity"],
-              album: track["album"]["name"],
-              playlist_spotify_id: spotify_id
-            }
+            result =
+              Repo.transaction(fn ->
+                track_entry = %Track{
+                  uri: track["uri"],
+                  title: track["name"],
+                  artists: Enum.map(track["artists"], & &1["name"]),
+                  popularity: track["popularity"],
+                  album: track["album"]["name"]
+                }
 
-            {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
+                # First ensure the track exists
+                {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
 
-            # Notify parent process of first track
-            if not Process.get({:notified_first_track, ref}) do
-              Process.put({:notified_first_track, ref}, true)
+                # Then create the association only if track was saved
+                if saved_track.uri do
+                  {1, _} =
+                    Repo.insert_all(
+                      "playlist_tracks",
+                      [
+                        %{
+                          track_uri: saved_track.uri,
+                          playlist_spotify_id: spotify_id,
+                          inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+                          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+                        }
+                      ],
+                      on_conflict: :nothing
+                    )
+                end
+
+                # Notify parent process of first track
+                if not Process.get(@notification_key) do
+                  Process.put(@notification_key, true)
+                  send(parent, {:first_track_saved, ref, spotify_id})
+                end
+
+                saved_track
+              end)
+
+            # Try to notify of first track - only the first message will be received
+            try do
+              send(notification_agent, :notified)
               send(parent, {:first_track_saved, ref, spotify_id})
+            catch
+              # Process already notified
+              :error, :badarg -> :ok
             end
 
-            saved_track
+            result
         end
 
         Task.start(fn ->

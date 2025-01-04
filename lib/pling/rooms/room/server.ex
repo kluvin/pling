@@ -66,7 +66,7 @@ defmodule Pling.Rooms.Room.Server do
   def handle_call({:set_playlist, playlist}, _from, state) do
     new_state = Impl.set_playlist(state, playlist)
     broadcast_state_update(new_state)
-    {:reply, new_state, new_state}
+    {:reply, {:ok, new_state}, new_state}
   end
 
   @impl true

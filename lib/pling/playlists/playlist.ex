@@ -9,7 +9,10 @@ defmodule Pling.Playlists.Playlist do
     field :image_url, :string
     field :owner, :string
     field :official, :boolean, default: false
-    has_many :tracks, Pling.Playlists.Track, foreign_key: :playlist_spotify_id
+
+    many_to_many :tracks, Pling.Playlists.Track,
+      join_through: "playlist_tracks",
+      join_keys: [playlist_spotify_id: :spotify_id, track_uri: :uri]
 
     timestamps()
   end
