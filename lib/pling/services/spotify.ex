@@ -15,7 +15,6 @@ defmodule Pling.Services.Spotify do
       )
 
     stream_fn = NDJsonStream.stream_fn(callback)
-    buffer = ""
 
     try do
       Req.get!(req,
@@ -23,11 +22,11 @@ defmodule Pling.Services.Spotify do
         params: [stream: true],
         into: fn
           {:data, data}, {req, resp} ->
-            {_, new_buffer} = stream_fn.({:data, data}, buffer)
+            {_, _} = stream_fn.({:data, data}, nil)
             {:cont, {req, resp}}
 
           {:done, data}, {req, resp} ->
-            stream_fn.({:done, data}, buffer)
+            stream_fn.({:done, data}, nil)
             {:cont, {req, resp}}
 
           _, state ->

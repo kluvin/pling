@@ -5,6 +5,8 @@ defmodule Pling.Services.NDJsonStream do
   """
   require Logger
 
+  @buffer_key :ndjson_buffer
+
   @doc """
   Creates a streaming function that processes NDJSON data and calls the callback
   for each complete JSON object.
@@ -17,15 +19,21 @@ defmodule Pling.Services.NDJsonStream do
   - Final buffer processing
   """
   def stream_fn(callback) when is_function(callback, 1) do
+    Process.put(@buffer_key, "")
+
     fn
-      {:data, data}, buffer ->
-        process_chunk(buffer <> data, false, callback)
+      {:data, data}, _acc ->
+        current_buffer = Process.get(@buffer_key)
+        process_chunk(current_buffer <> data, false, callback)
 
-      {:done, data}, buffer ->
-        process_chunk(buffer <> (data || ""), true, callback)
+      {:done, data}, _acc ->
+        current_buffer = Process.get(@buffer_key)
+        result = process_chunk(current_buffer <> (data || ""), true, callback)
+        Process.delete(@buffer_key)
+        result
 
-      _, buffer ->
-        {:cont, buffer}
+      _, _acc ->
+        {:cont, Process.get(@buffer_key)}
     end
   end
 
@@ -33,10 +41,24 @@ defmodule Pling.Services.NDJsonStream do
     parts = String.split(data, "\n")
 
     case {parts, is_final?} do
-      {[], _} -> {:cont, ""}
-      {[single], true} -> process_json(single, callback) && {:cont, ""}
-      {parts, true} -> process_all_parts(parts, callback) && {:cont, ""}
-      {parts, false} -> process_parts(parts, callback)
+      {[], _} ->
+        Process.put(@buffer_key, "")
+        {:cont, ""}
+
+      {[single], true} ->
+        process_json(single, callback)
+        Process.put(@buffer_key, "")
+        {:cont, ""}
+
+      {parts, true} ->
+        process_all_parts(parts, callback)
+        Process.put(@buffer_key, "")
+        {:cont, ""}
+
+      {parts, false} ->
+        result = process_parts(parts, callback)
+        Process.put(@buffer_key, elem(result, 1))
+        result
     end
   end
 
