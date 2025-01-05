@@ -64,7 +64,8 @@ config :pling, dev_routes: true
 
 config :logger, :console,
   format: "[$level] $message $metadata\n",
-  metadata: [:playlist_id, :error, :chunk, :track_id]
+  metadata: [:playlist_id, :error, :chunk, :track_id],
+  level: :debug
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

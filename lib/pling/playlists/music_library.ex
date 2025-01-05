@@ -59,15 +59,17 @@ defmodule Pling.Playlists.MusicLibrary do
   Gets a playlist by Spotify ID, fetching it from Spotify if it doesn't exist locally.
   Returns the playlist as soon as it has basic info and at least one track.
   """
-  def get_or_fetch_playlist(spotify_id, timeout \\ 5000) do
+  def get_or_fetch_playlist(spotify_id) do
     case Repo.get(Playlist, spotify_id) do
       nil ->
         ref = make_ref()
         parent = self()
-        notification_agent = Process.spawn(fn -> receive do: (_ -> :ok) end, [])
+        Logger.debug("Starting playlist fetch", spotify_id: spotify_id, ref: ref)
 
         callback = fn
           %{"playlist_info" => info} ->
+            Logger.debug("Processing playlist info", name: info["name"])
+
             playlist = %Playlist{
               spotify_id: spotify_id,
               name: info["name"],
@@ -77,63 +79,78 @@ defmodule Pling.Playlists.MusicLibrary do
             }
 
             {:ok, saved_playlist} = Repo.insert(playlist)
-            saved_playlist
+            :ok
 
           %{"track" => track} ->
-            result =
-              Repo.transaction(fn ->
-                track_entry = %Track{
-                  uri: track["uri"],
-                  title: track["name"],
-                  artists: Enum.map(track["artists"], & &1["name"]),
-                  popularity: track["popularity"],
-                  album: track["album"]["name"]
-                }
+            Logger.debug("Processing track", title: track["name"], uri: track["uri"])
 
-                # First ensure the track exists
-                {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
+            case Repo.transaction(fn ->
+                   track_entry = %Track{
+                     uri: track["uri"],
+                     title: track["name"],
+                     artists: Enum.map(track["artists"], & &1["name"]),
+                     popularity: track["popularity"],
+                     album: track["album"]["name"]
+                   }
 
-                # Then create the association only if track was saved
-                if saved_track.uri do
-                  {1, _} =
-                    Repo.insert_all(
-                      "playlist_tracks",
-                      [
-                        %{
-                          track_uri: saved_track.uri,
-                          playlist_spotify_id: spotify_id,
-                          inserted_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-                          updated_at: NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-                        }
-                      ],
-                      on_conflict: :nothing
-                    )
-                end
+                   # First ensure the track exists
+                   {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
+                   Logger.debug("Track saved", uri: saved_track.uri)
 
-                # Notify parent process of first track
-                if not Process.get(@notification_key) do
-                  Process.put(@notification_key, true)
-                  send(parent, {:first_track_saved, ref, spotify_id})
-                end
+                   # Then create the association only if track was saved
+                   if saved_track.uri do
+                     {1, _} =
+                       Repo.insert_all(
+                         "playlist_tracks",
+                         [
+                           %{
+                             track_uri: saved_track.uri,
+                             playlist_spotify_id: spotify_id,
+                             inserted_at:
+                               NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
+                             updated_at:
+                               NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+                           }
+                         ],
+                         on_conflict: :nothing
+                       )
 
-                saved_track
-              end)
+                     Logger.debug("Playlist-track association created",
+                       track_uri: saved_track.uri,
+                       playlist_id: spotify_id
+                     )
+                   end
 
-            # Try to notify of first track - only the first message will be received
-            try do
-              send(notification_agent, :notified)
-              send(parent, {:first_track_saved, ref, spotify_id})
-            catch
-              # Process already notified
-              :error, :badarg -> :ok
+                   # Notify parent process of first track
+                   notified = Process.get(@notification_key)
+
+                   Logger.debug("Checking notification status",
+                     already_notified: notified,
+                     notification_key: @notification_key
+                   )
+
+                   if notified == nil do
+                     Process.put(@notification_key, true)
+                     Logger.debug("Sending first track notification", ref: ref)
+                     send(parent, {:first_track_saved, ref, spotify_id})
+                   end
+
+                   saved_track
+                 end) do
+              {:ok, saved_track} ->
+                Logger.debug("Transaction completed successfully", track_uri: saved_track.uri)
+                :ok
+
+              {:error, reason} ->
+                Logger.warning("Transaction failed", error: inspect(reason))
+                :ok
             end
-
-            result
         end
 
         Task.start(fn ->
           case Pling.Services.Spotify.stream_playlist(spotify_id, callback) do
             :ok ->
+              Logger.debug("Playlist stream completed successfully", spotify_id: spotify_id)
               :ok
 
             {:error, reason} ->
@@ -145,19 +162,16 @@ defmodule Pling.Playlists.MusicLibrary do
 
         receive do
           {:first_track_saved, ^ref, playlist_id} ->
+            Logger.debug("Received first track notification", playlist_id: playlist_id)
+
             case Repo.get(Playlist, playlist_id) do
               nil -> {:error, :playlist_fetch_failed}
               playlist -> {:ok, :first_track_saved, playlist}
             end
 
           {:playlist_error, ^ref, reason} ->
+            Logger.debug("Received playlist error", error: inspect(reason))
             {:error, reason}
-        after
-          timeout ->
-            case Repo.get(Playlist, spotify_id) do
-              nil -> {:error, :playlist_fetch_timeout}
-              playlist -> {:ok, :timeout, playlist}
-            end
         end
 
       playlist ->

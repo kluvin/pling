@@ -1,5 +1,6 @@
 defmodule Pling.Services.Spotify do
   require Logger
+  alias Pling.Services.NDJsonStream
 
   @base_url "https://playlist-fetcher-1031294514094.europe-north1.run.app"
   @api_key "1367a6ef2cb6f3cd2bfb3f73978292fdae3bc9a5e885ca7632d4eb3fc15eb4d4"
@@ -13,41 +14,34 @@ defmodule Pling.Services.Spotify do
         headers: [{"x-api-key", @api_key}]
       )
 
-    case Req.get(req,
-           url: "/playlist/#{playlist_id}",
-           params: [stream: true],
-           into: fn {:data, data}, {req, resp} ->
-             String.split(data, "\n", trim: true)
-             |> Enum.each(fn line ->
-               case Jason.decode(line) do
-                 {:ok, decoded} ->
-                   Logger.debug("Processing playlist item",
-                     playlist_id: playlist_id,
-                     track_id: decoded["id"]
-                   )
+    stream_fn = NDJsonStream.stream_fn(callback)
+    buffer = ""
 
-                   callback.(decoded)
+    try do
+      Req.get!(req,
+        url: "/playlist/#{playlist_id}",
+        params: [stream: true],
+        into: fn
+          {:data, data}, {req, resp} ->
+            {_, new_buffer} = stream_fn.({:data, data}, buffer)
+            {:cont, {req, resp}}
 
-                 {:error, error} ->
-                   Logger.error("Failed to decode chunk",
-                     playlist_id: playlist_id,
-                     error: inspect(error),
-                     chunk: line
-                   )
-               end
-             end)
+          {:done, data}, {req, resp} ->
+            stream_fn.({:done, data}, buffer)
+            {:cont, {req, resp}}
 
-             {:cont, {req, resp}}
-           end
-         ) do
-      {:ok, _response} ->
-        Logger.info("Completed playlist stream", playlist_id: playlist_id)
-        :ok
+          _, state ->
+            {:cont, state}
+        end
+      )
 
-      {:error, error} ->
+      Logger.info("Completed playlist stream", playlist_id: playlist_id)
+      :ok
+    catch
+      kind, error ->
         Logger.error("Failed to stream playlist",
           playlist_id: playlist_id,
-          error: inspect(error)
+          error: Exception.format(kind, error, __STACKTRACE__)
         )
 
         {:error, error}
