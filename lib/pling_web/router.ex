@@ -35,7 +35,6 @@ defmodule PlingWeb.Router do
     pipe_through :require_login
     live "/", HomeLive
     live "/:game_mode/:room_code", RoomLive
-    live "/:game_mode/:room_code/list/:playlist_id", RoomLive
   end
 
   pipeline :require_login do
