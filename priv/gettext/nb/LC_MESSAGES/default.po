@@ -3,89 +3,216 @@ msgstr ""
 "Language: nb\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Welcome to Pling"
-msgstr "Velkommen til Pling"
-
+#: lib/pling_web/live/home_live.html.heex:5
+#, elixir-autogen, elixir-format
 msgid "A real-time music game"
 msgstr "Et sanntids musikkspill"
 
-msgid "Create Versus Room"
-msgstr "Opprett lag-mot-lag rom"
+#: lib/pling_web/components/core_components.ex:483
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr "Handlinger"
 
-msgid "Create Free-for-All Room (beta)"
-msgstr "Opprett alle-mot-alle-rom (beta)"
+#: lib/pling_web/components/core_components.ex:160
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr "Kobler på"
 
-msgid "or"
-msgstr "eller"
-
-msgid "Enter a room code"
-msgstr "Skriv inn romkode"
-
-msgid "Join Room"
-msgstr "Bli med i rom"
-
-msgid "How to Play"
-msgstr "Hvordan spille"
-
-msgid "How to Play Pling"
-msgstr "Hvordan spille Pling"
-
-msgid "Game Rules and Instructions"
-msgstr "Spillregler og instruksjoner"
-
-msgid "Versus Mode"
-msgstr "lag mot lag-modus"
-
-msgid "In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!"
-msgstr "I lag mot lag-modus konkurrerer to lag om å identifisere sanger raskere enn motstanderne. Hvert riktig gjett gir poeng til laget ditt. Laget med flest poeng til slutt vinner!"
-
-msgid "Free-for-All Mode (Beta)"
-msgstr "Alle-mot-alle-modus (Beta)"
-
-msgid "In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. The player with the most points at the end of the game wins!"
-msgstr "I alle-mot-alle-modus spiller alle individuelt. Vær først til å identifisere sangen for å få poeng. Spilleren med flest poeng ved spillets slutt vinner!"
-
-msgid "Create a room or join an existing one with a room code"
-msgstr "Opprett et rom eller bli med i et eksisterende med en romkode"
-
-msgid "Share the room code with your friends"
-msgstr "Del romkoden med vennene dine"
-
-msgid "Listen to the song clips and type your guesses"
-msgstr "Lytt til sangklippene og skriv inn gjetningene dine"
-
-msgid "Score points by being the first to correctly identify songs"
-msgstr "Få poeng ved å være først til å identifisere sanger korrekt"
-
-msgid "is here"
-msgstr "er her"
-
-msgid "is joined by"
-msgstr "er med sammen med"
-
-msgid "PLING"
-msgstr "PLING"
-
-msgid "PLAY"
-msgstr "SPILL"
-
-msgid "Scores"
-msgstr "Poeng"
-
+#: lib/pling_web/live/room_live.ex:319
+#, elixir-autogen, elixir-format
 msgid "Clear Recent"
 msgstr "Fjern nylige"
 
+#: lib/pling_web/live/home_live.html.heex:14
+#, elixir-autogen, elixir-format
+msgid "Create Free-for-All Room (beta)"
+msgstr "Opprett alle-mot-alle-rom (beta)"
+
+#: lib/pling_web/live/home_live.html.heex:11
+#, elixir-autogen, elixir-format
+msgid "Create Versus Room"
+msgstr "Opprett lag-mot-lag rom"
+
+#: lib/pling_web/live/home_live.html.heex:66
+#, elixir-autogen, elixir-format
+msgid "Create a room or join an existing one with a room code"
+msgstr "Opprett et rom eller bli med i et eksisterende med en romkode"
+
+#: lib/pling_web/live/home_live.html.heex:25
+#, elixir-autogen, elixir-format
+msgid "Enter a room code"
+msgstr "Skriv inn romkode"
+
+#: lib/pling_web/components/core_components.ex:151
+#, elixir-autogen, elixir-format
+msgid "Error!"
+msgstr "Error!"
+
+#: lib/pling_web/live/home_live.html.heex:57
+#, elixir-autogen, elixir-format
+msgid "Free-for-All Mode (Beta)"
+msgstr "Alle-mot-alle-modus (Beta)"
+
+#: lib/pling_web/live/home_live.html.heex:46
+#, elixir-autogen, elixir-format
+msgid "Game Rules and Instructions"
+msgstr "Spillregler og instruksjoner"
+
+#: lib/pling_web/components/core_components.ex:172
+#, elixir-autogen, elixir-format
+msgid "Hang in there while we get back on track"
+msgstr "Vent litt mens vi finner ut av det"
+
+#: lib/pling_web/live/home_live.html.heex:36
+#: lib/pling_web/live/home_live.html.heex:64
+#, elixir-autogen, elixir-format
+msgid "How to Play"
+msgstr "Hvordan spille"
+
+#: lib/pling_web/live/home_live.html.heex:45
+#, elixir-autogen, elixir-format
+msgid "How to Play Pling"
+msgstr "Hvordan spille Pling"
+
+#: lib/pling_web/live/home_live.html.heex:59
+#, elixir-autogen, elixir-format
+msgid "In Free-for-All mode, every player plays individually. Be the first to identify the song to earn points. The player with the most points at the end of the game wins!"
+msgstr "I alle-mot-alle-modus spiller alle individuelt. Vær først til å identifisere sangen for å få poeng. Spilleren med flest poeng ved spillets slutt vinner!"
+
+#: lib/pling_web/live/home_live.html.heex:52
+#, elixir-autogen, elixir-format
+msgid "In Versus mode, two teams compete to identify songs faster than their opponents. Each correct guess earns points for your team. The team with the most points at the end wins!"
+msgstr "I lag mot lag-modus konkurrerer to lag om å identifisere sanger raskere enn motstanderne. Hvert riktig gjett gir poeng til laget ditt. Laget med flest poeng til slutt vinner!"
+
+#: lib/pling_web/live/home_live.html.heex:31
+#, elixir-autogen, elixir-format
+msgid "Join Room"
+msgstr "Bli med i rom"
+
+#: lib/pling_web/live/home_live.html.heex:68
+#, elixir-autogen, elixir-format
+msgid "Listen to the song clips and type your guesses"
+msgstr "Lytt til sangklippene og skriv inn gjetningene dine"
+
+#: lib/pling_web/live/room_live.html.heex:20
+#, elixir-autogen, elixir-format
 msgid "Next Track"
 msgstr "Neste sang"
 
-msgid "swipe to see song"
-msgstr "sveip for å se sang"
+#: lib/pling_web/live/room_live.ex:295
+#, elixir-autogen, elixir-format
+msgid "PLAY"
+msgstr "SPILL"
 
+#: lib/pling_web/live/room_live.ex:292
+#: lib/pling_web/live/room_live.ex:298
+#, elixir-autogen, elixir-format
+msgid "PLING"
+msgstr "PLING"
+
+#: lib/pling_web/components/layouts/root.html.heex:15
+#, elixir-autogen, elixir-format
+msgid "Pling"
+msgstr "Pling"
+
+#: lib/pling_web/live/home_live.html.heex:69
+#, elixir-autogen, elixir-format
+msgid "Score points by being the first to correctly identify songs"
+msgstr "Få poeng ved å være først til å identifisere sanger korrekt"
+
+#: lib/pling_web/live/room_live.ex:316
+#, elixir-autogen, elixir-format
+msgid "Scores"
+msgstr "Poeng"
+
+#: lib/pling_web/live/home_live.html.heex:67
+#, elixir-autogen, elixir-format
+msgid "Share the room code with your friends"
+msgstr "Del romkoden med vennene dine"
+
+#: lib/pling_web/components/core_components.ex:167
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr "Noe gikk gale!"
+
+#: lib/pling_web/components/core_components.ex:150
+#, elixir-autogen, elixir-format
+msgid "Success!"
+msgstr "Suksess!"
+
+#: lib/pling_web/live/home_live.html.heex:50
+#, elixir-autogen, elixir-format
+msgid "Versus Mode"
+msgstr "lag mot lag-modus"
+
+#: lib/pling_web/components/core_components.ex:155
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr "Vi finner ikke internett"
+
+#: lib/pling_web/live/home_live.html.heex:4
+#, elixir-autogen, elixir-format
+msgid "Welcome to Pling"
+msgstr "Velkommen til Pling"
+
+#: lib/pling_web/components/core_components.ex:76
+#: lib/pling_web/components/core_components.ex:130
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr "lukk"
+
+#: lib/pling_web/live/room_live.html.heex:46
+#, elixir-autogen, elixir-format
 msgid "hide playlists"
 msgstr "skjul spillelister"
 
+#: lib/pling_web/live/room_live.ex:267
+#, elixir-autogen, elixir-format
+msgid "is joined by"
+msgstr "er sammen med"
+
+#: lib/pling_web/live/home_live.html.heex:19
+#, elixir-autogen, elixir-format
+msgid "or"
+msgstr "eller"
+
+#: lib/pling_web/live/room_live.html.heex:46
+#, elixir-autogen, elixir-format
 msgid "show playlists"
 msgstr "vis spillelister"
 
-msgid "Pling"
-msgstr "Pling" 
+#: lib/pling_web/live/room_live.html.heex:37
+#, elixir-autogen, elixir-format
+msgid "swipe to see song"
+msgstr "sveip for å se sang"
+
+#: lib/pling_web/live/room_live.ex:231
+#, elixir-autogen, elixir-format
+msgid "Waiting for users..."
+msgstr "Venter på brukere"
+
+#: lib/pling_web/live/room_live.ex:246
+#, elixir-autogen, elixir-format
+msgid "is in the"
+msgstr "er i"
+
+#: lib/pling_web/live/room_live.ex:247
+#: lib/pling_web/live/room_live.ex:275
+#, elixir-autogen, elixir-format
+msgid "room"
+msgstr "rommet"
+
+#: lib/pling_web/live/room_live.ex:274
+#, elixir-autogen, elixir-format, fuzzy
+msgid "in the"
+msgstr "i"
+
+#: lib/pling_web/live/room_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "Unknown Playlist"
+msgstr "Ukjent spilleliste"
+
+#: lib/pling_web/live/room_live.ex:219
+#, elixir-autogen, elixir-format
+msgid "and listening to"
+msgstr "og lytter til"

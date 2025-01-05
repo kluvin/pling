@@ -185,13 +185,11 @@ defmodule PlingWeb.RoomLive do
   def room_info(assigns) do
     ~H"""
     <div class="w-full text-center space-y-2">
-      <div class="text-sm text-gray-500">{@room_code}</div>
+      <div class="text-sm text-slate-500">
+        <.user_list users={@users} user_id={@user_id} room_code={@room_code} />
+      </div>
 
       <.playlist_info selection={@selection} playlists={@playlists} />
-
-      <div class="text-sm text-gray-500">
-        <.user_list users={@users} user_id={@user_id} />
-      </div>
     </div>
     """
   end
@@ -211,15 +209,16 @@ defmodule PlingWeb.RoomLive do
         true ->
           # Track exists but playlist not found, nothing.
           nil
-          "Unknown Playlist"
+          gettext("Unknown Playlist")
       end
 
     assigns = assign(assigns, :playlist_name, playlist_name)
 
     ~H"""
-    <div class="text-xs text-gray-400">
+    <div class="text-sm text-slate-600">
+      {gettext("and listening to")}
       <%= if @playlist_name do %>
-        {@playlist_name}
+        <span class="text-slate-900">{@playlist_name}</span>
       <% end %>
     </div>
     """
@@ -233,43 +232,48 @@ defmodule PlingWeb.RoomLive do
     """
   end
 
-  defp user_list(%{users: [single_user], user_id: user_id} = assigns) do
+  defp user_list(%{users: [single_user], user_id: user_id, room_code: room_code} = assigns) do
     assigns =
       assigns
       |> assign(:is_current_user?, single_user.user_id == user_id)
       |> assign(:single_user, single_user)
+      |> assign(:room_code, room_code)
 
     ~H"""
-    <span class={if @is_current_user?, do: "font-bold"}>
+    <span class={["text-slate-900", @is_current_user? && "font-bold"]}>
       {@single_user.user_id}
     </span>
-    {gettext("is here")}
+    {gettext("is in the")}
+    <span class="text-slate-900">{@room_code}</span>{gettext("room")}
     """
   end
 
-  defp user_list(%{users: [first_user | other_users], user_id: user_id} = assigns) do
-    other_users_with_current =
-      Enum.map(other_users, fn user ->
+  defp user_list(%{users: users, user_id: user_id} = assigns) do
+    users_with_current =
+      Enum.map(users, fn user ->
         %{user: user, is_current?: user.user_id == user_id}
       end)
 
+    [first_user_with_current | other_users_with_current] = users_with_current
+
     assigns =
       assigns
-      |> assign(:first_user, first_user)
+      |> assign(:first_user_with_current, first_user_with_current)
       |> assign(:other_users_with_current, other_users_with_current)
-      |> assign(:is_first_user?, first_user.user_id == user_id)
 
     ~H"""
-    <span class={if @is_first_user?, do: "font-bold"}>
-      {@first_user.user_id}
+    <span class={if @first_user_with_current.is_current?, do: "font-bold text-slate-900"}>
+      {@first_user_with_current.user.user_id}
     </span>
     {gettext("is joined by")}
-    <%= for {%{user: user, is_current?: is_current?}, index} <- Enum.with_index(@other_users_with_current) do %>
-      <span class={if is_current?, do: "font-bold"}>
-        {user.user_id}
+    <%= for {user_with_current, index} <- Enum.with_index(@other_users_with_current) do %>
+      <span class={if user_with_current.is_current?, do: "font-bold text-slate-900"}>
+        {user_with_current.user.user_id}
       </span>
       {if index < length(@other_users_with_current) - 1, do: ", "}
     <% end %>
+    {gettext("in the")}
+    <span class="text-slate-900">{@room_code}</span>{gettext("room")}
     """
   end
 
@@ -298,8 +302,8 @@ defmodule PlingWeb.RoomLive do
         <audio id="bell">
           <source src={~p"/audio/bell.mp3"} type="audio/mp3" />
         </audio>
-        <span class={"edge #{if @disabled?, do: "bg-gray-800", else: "bg-red-800"}"}></span>
-        <span class={"front #{if @disabled?, do: "bg-gradient-to-b from-gray-500 to-gray-600", else: "bg-gradient-to-b from-red-500 to-red-600"}"}>
+        <span class={"edge #{if @disabled?, do: "bg-slate-800", else: "bg-red-800"}"}></span>
+        <span class={"front #{if @disabled?, do: "bg-gradient-to-b from-slate-500 to-slate-600", else: "bg-gradient-to-b from-red-500 to-red-600"}"}>
         </span>
       </button>
     </div>
@@ -351,7 +355,7 @@ defmodule PlingWeb.RoomLive do
       case assigns.counter_id do
         "blue" -> {"bg-blue-800", "bg-gradient-to-b from-blue-500 to-blue-600"}
         "red" -> {"bg-red-800", "bg-gradient-to-b from-red-500 to-red-600"}
-        _ -> {"bg-gray-800", "bg-gradient-to-b from-gray-500 to-gray-600"}
+        _ -> {"bg-slate-800", "bg-gradient-to-b from-slate-500 to-slate-600"}
       end
 
     count_value = Map.get(assigns.scores || %{}, assigns.counter_id, 0)

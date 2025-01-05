@@ -11,6 +11,7 @@ defmodule PlingWeb.Router do
     plug :put_root_layout, html: {PlingWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :upcase_room_code
   end
 
   pipeline :api do
@@ -48,6 +49,16 @@ defmodule PlingWeb.Router do
       conn
       |> redirect(to: "/login")
       |> halt()
+    end
+  end
+
+  defp upcase_room_code(conn, _opts) do
+    case conn.path_params do
+      %{"room_code" => room_code} = params ->
+        %{conn | path_params: %{params | "room_code" => String.upcase(room_code)}}
+
+      _ ->
+        conn
     end
   end
 

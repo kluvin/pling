@@ -22,7 +22,10 @@ defmodule PlingWeb.HomeLive do
   end
 
   defp generate_room_code do
-    NamesService.random_noun()
+    noun1 = NamesService.random_noun()
+    noun2 = NamesService.random_noun()
+
+    (noun1 <> noun2)
     |> String.upcase()
   end
 end
