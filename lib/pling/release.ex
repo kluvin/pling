@@ -25,4 +25,10 @@ defmodule Pling.Release do
   defp load_app do
     Application.load(@app)
   end
+
+  def seed do
+    load_app()
+    Application.ensure_all_started(@app)
+    Code.eval_file("#{Application.app_dir(@app)}/priv/repo/seeds.exs")
+  end
 end
