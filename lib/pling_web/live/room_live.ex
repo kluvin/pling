@@ -116,8 +116,12 @@ defmodule PlingWeb.RoomLive do
 
   @impl true
   def handle_event("set_playlist", %{"playlist_id" => playlist_id}, socket) do
-    Rooms.set_playlist(socket.assigns.room_code, playlist_id)
-    {:noreply, assign(socket, show_playlist_modal: false)}
+    {:noreply,
+     socket
+     |> assign(show_playlist_modal: false)
+     |> push_patch(
+       to: ~p"/#{socket.assigns.game_mode}/#{socket.assigns.room_code}?list=#{playlist_id}"
+     )}
   end
 
   @impl true
@@ -473,5 +477,17 @@ defmodule PlingWeb.RoomLive do
         Logger.error("Failed to load playlist in UI: #{inspect(reason)}")
         Rooms.join_room(room_code, user_id, self(), game_mode)
     end
+  end
+
+  @impl true
+  def handle_params(%{"list" => playlist_id}, _uri, socket) do
+    Rooms.set_playlist(socket.assigns.room_code, playlist_id)
+    {:noreply, socket}
+  end
+
+  # Fallback for when there's no list parameter
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    {:noreply, socket}
   end
 end

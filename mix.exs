@@ -60,7 +60,8 @@ defmodule Pling.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
       {:tesla, "~> 1.7"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:meck, "~> 0.9.2", only: :test}
     ]
   end
 

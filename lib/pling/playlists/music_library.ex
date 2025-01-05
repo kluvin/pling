@@ -61,121 +61,114 @@ defmodule Pling.Playlists.MusicLibrary do
   """
   def get_or_fetch_playlist(spotify_id) do
     case Repo.get(Playlist, spotify_id) do
-      nil ->
-        ref = make_ref()
-        parent = self()
-        Logger.debug("Starting playlist fetch", spotify_id: spotify_id, ref: ref)
+      nil -> fetch_playlist_from_spotify(spotify_id)
+      playlist -> {:ok, :exists, playlist}
+    end
+  end
 
-        callback = fn
-          %{"playlist_info" => info} ->
-            Logger.debug("Processing playlist info", name: info["name"])
+  defp fetch_playlist_from_spotify(spotify_id) do
+    ref = make_ref()
+    parent = self()
 
-            playlist = %Playlist{
-              spotify_id: spotify_id,
-              name: info["name"],
-              owner: info["owner"],
-              image_url: get_first_image_url(info["images"]),
-              official: false
-            }
+    Task.start(fn ->
+      callback = build_playlist_callback(spotify_id, ref, parent)
 
-            {:ok, saved_playlist} = Repo.insert(playlist)
-            :ok
+      case Pling.Services.Spotify.stream_playlist(spotify_id, callback) do
+        :ok -> :ok
+        {:error, reason} -> send(parent, {:playlist_error, ref, reason})
+      end
+    end)
 
-          %{"track" => track} ->
-            Logger.debug("Processing track", title: track["name"], uri: track["uri"])
+    await_playlist_result(ref, spotify_id)
+  end
 
-            case Repo.transaction(fn ->
-                   track_entry = %Track{
-                     uri: track["uri"],
-                     title: track["name"],
-                     artists: Enum.map(track["artists"], & &1["name"]),
-                     popularity: track["popularity"],
-                     album: track["album"]["name"]
-                   }
+  defp build_playlist_callback(spotify_id, ref, parent) do
+    fn
+      %{"playlist_info" => info} ->
+        create_playlist(spotify_id, info)
 
-                   # First ensure the track exists
-                   {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
-                   Logger.debug("Track saved", uri: saved_track.uri)
+      %{"track" => track} ->
+        process_track(track, spotify_id, ref, parent)
+    end
+  end
 
-                   # Then create the association only if track was saved
-                   if saved_track.uri do
-                     {1, _} =
-                       Repo.insert_all(
-                         "playlist_tracks",
-                         [
-                           %{
-                             track_uri: saved_track.uri,
-                             playlist_spotify_id: spotify_id,
-                             inserted_at:
-                               NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second),
-                             updated_at:
-                               NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-                           }
-                         ],
-                         on_conflict: :nothing
-                       )
+  defp create_playlist(spotify_id, info) do
+    playlist = %Playlist{
+      spotify_id: spotify_id,
+      name: info["name"],
+      owner: info["owner"],
+      image_url: get_first_image_url(info["images"]),
+      official: false
+    }
 
-                     Logger.debug("Playlist-track association created",
-                       track_uri: saved_track.uri,
-                       playlist_id: spotify_id
-                     )
-                   end
+    {:ok, _} = Repo.insert(playlist)
+    :ok
+  end
 
-                   # Notify parent process of first track
-                   notified = Process.get(@notification_key)
+  defp process_track(track, spotify_id, ref, parent) do
+    case create_track_with_association(track, spotify_id) do
+      {:ok, _} -> maybe_notify_first_track(ref, parent, spotify_id)
+      _ -> :ok
+    end
+  end
 
-                   Logger.debug("Checking notification status",
-                     already_notified: notified,
-                     notification_key: @notification_key
-                   )
+  defp create_track_with_association(track, spotify_id) do
+    Repo.transaction(fn ->
+      track_entry = %Track{
+        uri: track["uri"],
+        title: track["name"],
+        artists: Enum.map(track["artists"], & &1["name"]),
+        popularity: track["popularity"],
+        album: track["album"]["name"]
+      }
 
-                   if notified == nil do
-                     Process.put(@notification_key, true)
-                     Logger.debug("Sending first track notification", ref: ref)
-                     send(parent, {:first_track_saved, ref, spotify_id})
-                   end
+      {:ok, saved_track} = Repo.insert(track_entry, on_conflict: :nothing)
 
-                   saved_track
-                 end) do
-              {:ok, saved_track} ->
-                Logger.debug("Transaction completed successfully", track_uri: saved_track.uri)
-                :ok
+      if saved_track.uri do
+        create_playlist_track_association(saved_track.uri, spotify_id)
+      end
 
-              {:error, reason} ->
-                Logger.warning("Transaction failed", error: inspect(reason))
-                :ok
-            end
+      saved_track
+    end)
+  end
+
+  defp create_playlist_track_association(track_uri, spotify_id) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    {1, _} =
+      Repo.insert_all(
+        "playlist_tracks",
+        [
+          %{
+            track_uri: track_uri,
+            playlist_spotify_id: spotify_id,
+            inserted_at: now,
+            updated_at: now
+          }
+        ],
+        on_conflict: :nothing
+      )
+  end
+
+  defp maybe_notify_first_track(ref, parent, spotify_id) do
+    if !Process.get(@notification_key) do
+      Process.put(@notification_key, true)
+      send(parent, {:first_track_saved, ref, spotify_id})
+    end
+
+    :ok
+  end
+
+  defp await_playlist_result(ref, spotify_id) do
+    receive do
+      {:first_track_saved, ^ref, ^spotify_id} ->
+        case Repo.get(Playlist, spotify_id) do
+          nil -> {:error, :playlist_fetch_failed}
+          playlist -> {:ok, :first_track_saved, playlist}
         end
 
-        Task.start(fn ->
-          case Pling.Services.Spotify.stream_playlist(spotify_id, callback) do
-            :ok ->
-              Logger.debug("Playlist stream completed successfully", spotify_id: spotify_id)
-              :ok
-
-            {:error, reason} ->
-              Logger.error("Failed to fetch complete playlist: #{inspect(reason)}")
-              # Notify parent in case of immediate error
-              send(parent, {:playlist_error, ref, reason})
-          end
-        end)
-
-        receive do
-          {:first_track_saved, ^ref, playlist_id} ->
-            Logger.debug("Received first track notification", playlist_id: playlist_id)
-
-            case Repo.get(Playlist, playlist_id) do
-              nil -> {:error, :playlist_fetch_failed}
-              playlist -> {:ok, :first_track_saved, playlist}
-            end
-
-          {:playlist_error, ^ref, reason} ->
-            Logger.debug("Received playlist error", error: inspect(reason))
-            {:error, reason}
-        end
-
-      playlist ->
-        {:ok, :exists, playlist}
+      {:playlist_error, ^ref, reason} ->
+        {:error, reason}
     end
   end
 
