@@ -72,6 +72,32 @@ defmodule Pling.Playlists do
     Playlist.changeset(playlist, attrs)
   end
 
+  @playlist_id_length 22
+
+  @doc """
+  Extracts and validates a Spotify playlist ID from either a full Spotify URL or a raw ID.
+  Returns nil if the input is invalid.
+  """
+  def extract_playlist_id("https://open.spotify.com/playlist/" <> potential_id) do
+    potential_id = String.slice(potential_id, 0, @playlist_id_length)
+    validate_playlist_id(potential_id)
+  end
+
+  def extract_playlist_id(potential_id) when is_binary(potential_id) do
+    validate_playlist_id(potential_id)
+  end
+
+  def extract_playlist_id(_), do: nil
+
+  # IDs are 22 chars
+  defp validate_playlist_id(id) do
+    if byte_size(id) == @playlist_id_length and id =~ ~r/^[a-zA-Z0-9]{#{@playlist_id_length}}$/ do
+      id
+    else
+      nil
+    end
+  end
+
   # Track Operations
 
   @doc """

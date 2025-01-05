@@ -5,6 +5,8 @@ defmodule PlingWeb.RoomLive do
   alias Pling.Rooms.Presence
   require Logger
 
+  @playlist_id_length 22
+
   @impl true
   def mount(
         %{"room_code" => room_code, "game_mode" => game_mode} = params,
@@ -116,11 +118,14 @@ defmodule PlingWeb.RoomLive do
 
   @impl true
   def handle_event("set_playlist", %{"playlist_id" => playlist_id}, socket) do
+    cleaned_playlist_id = extract_playlist_id(playlist_id)
+
     {:noreply,
      socket
      |> assign(show_playlist_modal: false)
      |> push_patch(
-       to: ~p"/#{socket.assigns.game_mode}/#{socket.assigns.room_code}?list=#{playlist_id}"
+       to:
+         ~p"/#{socket.assigns.game_mode}/#{socket.assigns.room_code}?list=#{cleaned_playlist_id}"
      )}
   end
 
@@ -426,12 +431,12 @@ defmodule PlingWeb.RoomLive do
 
         <div class="mt-6 space-y-2">
           <label class="text-sm text-gray-600">{gettext("Or use your own playlist:")}</label>
-          <form class="flex gap-2" action={~p"/#{@game_mode}/#{@room_code}"}>
+          <form class="flex gap-2" phx-submit="set_playlist">
             <.input
               type="text"
-              name="list"
+              name="playlist_id"
               value=""
-              placeholder={gettext("Spotify playlist ID")}
+              placeholder={gettext("Spotify playlist link or ID")}
               autocomplete="off"
             />
             <.button type="submit">
@@ -464,10 +469,12 @@ defmodule PlingWeb.RoomLive do
   end
 
   defp handle_playlist_join(room_code, user_id, game_mode, playlist_id) do
-    case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(playlist_id) do
+    cleaned_playlist_id = extract_playlist_id(playlist_id)
+
+    case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(cleaned_playlist_id) do
       {:ok, :first_track_saved, playlist} ->
         {:ok, _state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
-        {:ok, state} = Rooms.set_playlist(room_code, playlist_id)
+        {:ok, state} = Rooms.set_playlist(room_code, cleaned_playlist_id)
         state
 
       {:ok, _, playlist} ->
@@ -479,9 +486,34 @@ defmodule PlingWeb.RoomLive do
     end
   end
 
+  defp extract_playlist_id("https://open.spotify.com/playlist/" <> potential_id) do
+    potential_id = String.slice(potential_id, 0, @playlist_id_length)
+    validate_playlist_id(potential_id)
+  end
+
+  defp extract_playlist_id(potential_id) when is_binary(potential_id) do
+    validate_playlist_id(potential_id)
+  end
+
+  defp extract_playlist_id(_), do: nil
+
+  # IDs are 22 chars
+  defp validate_playlist_id(id) do
+    if byte_size(id) == @playlist_id_length and id =~ ~r/^[a-zA-Z0-9]{#{@playlist_id_length}}$/ do
+      id
+    else
+      nil
+    end
+  end
+
   @impl true
   def handle_params(%{"list" => playlist_id}, _uri, socket) do
-    Rooms.set_playlist(socket.assigns.room_code, playlist_id)
+    cleaned_playlist_id = extract_playlist_id(playlist_id)
+
+    if cleaned_playlist_id do
+      Rooms.set_playlist(socket.assigns.room_code, cleaned_playlist_id)
+    end
+
     {:noreply, socket}
   end
 
