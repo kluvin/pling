@@ -22,28 +22,32 @@
   <% end %>
 
   <div class="grid grid-cols-3 w-full space-y-4 place-items-center">
-    <%= if @show_playlist do %>
-      <.playlist_grid selection={@selection} playlists={@playlists} />
+    <%= if @game_mode == "vs" do %>
+      <.counter_button counter_id="red" scores={@scores} />
+      <div class="flex flex-col items-center">
+        <.icon
+          :if={!@playing?}
+          name="hero-chevron-double-up-solid"
+          class="h-16 w-16 text-zinc-700"
+        />
+        <p :if={!@playing?} class="text-sm text-center font-semibold text-zinc-700">
+          {gettext("swipe to see song")}
+        </p>
+      </div>
+      <.counter_button counter_id="blue" scores={@scores} />
     <% else %>
-      <%= if @game_mode == "vs" do %>
-        <.counter_button counter_id="red" scores={@scores} />
-        <div class="flex flex-col items-center">
-          <.icon
-            :if={!@playing?}
-            name="hero-chevron-double-up-solid"
-            class="h-16 w-16 text-zinc-700"
-          />
-          <p :if={!@playing?} class="text-sm text-center font-semibold text-zinc-700">
-            {gettext("swipe to see song")}
-          </p>
-        </div>
-        <.counter_button counter_id="blue" scores={@scores} />
-      <% else %>
-        <.render_scores {assigns} />
-      <% end %>
+      <.render_scores {assigns} />
     <% end %>
-    <.button phx-click="toggle_playlist_selector" class="col-span-3 text-sm font-semibold">
-      {if @show_playlist, do: gettext("hide playlists"), else: gettext("show playlists")}
+    <.button phx-click={show_modal("playlist-modal")} class="col-span-3 text-sm font-semibold">
+      {gettext("show playlists")}
     </.button>
   </div>
 </div>
+
+<.playlist_grid
+  selection={@selection}
+  playlists={@playlists}
+  show_playlist_modal={@show_playlist_modal}
+  game_mode={@game_mode}
+  room_code={@room_code}
+/>

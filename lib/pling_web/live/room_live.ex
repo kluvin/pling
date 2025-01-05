@@ -1,6 +1,5 @@
 defmodule PlingWeb.RoomLive do
   use PlingWeb, :live_view
-  import PlingWeb.Components.PlaylistSelector
   alias Phoenix.LiveView.JS
   alias Pling.Rooms
   alias Pling.Rooms.Presence
@@ -19,20 +18,11 @@ defmodule PlingWeb.RoomLive do
 
       {:ok, state} =
         case params do
-          %{"playlist_id" => playlist_id} ->
-            case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(playlist_id) do
-              {:ok, :first_track_saved, playlist} ->
-                {:ok, _state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
-                {:ok, state} = Rooms.set_playlist(room_code, playlist_id)
-                state
+          %{"playlist_id" => playlist_id} when not is_nil(playlist_id) ->
+            handle_playlist_join(room_code, user_id, game_mode, playlist_id)
 
-              {:ok, _, playlist} ->
-                Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
-
-              {:error, reason} ->
-                Logger.error("Failed to load playlist in UI: #{inspect(reason)}")
-                Rooms.join_room(room_code, user_id, self(), game_mode)
-            end
+          %{"list" => playlist_id} when not is_nil(playlist_id) ->
+            handle_playlist_join(room_code, user_id, game_mode, playlist_id)
 
           _ ->
             Rooms.join_room(room_code, user_id, self(), game_mode)
@@ -61,7 +51,7 @@ defmodule PlingWeb.RoomLive do
     assign(socket,
       room_code: room_code,
       user_id: user_id,
-      show_playlist: false,
+      show_playlist_modal: false,
       game_mode: game_mode,
       current_track: nil,
       leader?: false,
@@ -125,14 +115,9 @@ defmodule PlingWeb.RoomLive do
   end
 
   @impl true
-  def handle_event("toggle_playlist_selector", _, socket) do
-    {:noreply, assign(socket, show_playlist: !socket.assigns.show_playlist)}
-  end
-
-  @impl true
   def handle_event("set_playlist", %{"playlist_id" => playlist_id}, socket) do
     Rooms.set_playlist(socket.assigns.room_code, playlist_id)
-    {:noreply, socket}
+    {:noreply, assign(socket, show_playlist_modal: false)}
   end
 
   @impl true
@@ -401,10 +386,19 @@ defmodule PlingWeb.RoomLive do
     """
   end
 
-  defp playlist_grid(%{selection: selection, playlists: playlists} = assigns) do
+  defp playlist_grid(
+         %{
+           selection: selection,
+           playlists: playlists,
+           game_mode: game_mode,
+           room_code: room_code
+         } = assigns
+       ) do
     playlists_with_active =
       if playlists do
-        Enum.map(playlists, fn {_id, playlist} ->
+        playlists
+        |> Map.values()
+        |> Enum.map(fn playlist ->
           Map.put(playlist, :active?, selection.playlist == playlist.spotify_id)
         end)
       else
@@ -414,11 +408,70 @@ defmodule PlingWeb.RoomLive do
     assigns = assign(assigns, :playlists_with_active, playlists_with_active)
 
     ~H"""
-    <div class="col-span-3 grid grid-cols-3 place-items-center gap-4 rounded w-full">
-      <%= for playlist <- @playlists_with_active do %>
-        <.playlist id={playlist.spotify_id} name={playlist.name} active?={playlist.active?} />
-      <% end %>
-    </div>
+    <.modal id="playlist-modal" show={@show_playlist_modal}>
+      <.header>
+        {gettext("Select a Playlist")}
+      </.header>
+
+      <div class="mt-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <%= for playlist <- @playlists_with_active do %>
+            <.playlist id={playlist.spotify_id} name={playlist.name} active?={playlist.active?} />
+          <% end %>
+        </div>
+
+        <div class="mt-6 space-y-2">
+          <label class="text-sm text-gray-600">{gettext("Or use your own playlist:")}</label>
+          <form class="flex gap-2" action={~p"/#{@game_mode}/#{@room_code}"}>
+            <.input
+              type="text"
+              name="list"
+              value=""
+              placeholder={gettext("Spotify playlist ID")}
+              autocomplete="off"
+            />
+            <.button type="submit">
+              {gettext("Go")}
+            </.button>
+          </form>
+        </div>
+      </div>
+    </.modal>
     """
+  end
+
+  def playlist(assigns) do
+    active? = assigns[:active?]
+
+    active_class =
+      if active?, do: "bg-indigo-900 text-indigo-50", else: "bg-indigo-50 text-indigo-900"
+
+    assigns = assign(assigns, :active_class, active_class)
+
+    ~H"""
+    <button
+      class={"px-4 py-2 rounded " <> @active_class}
+      phx-click="set_playlist"
+      phx-value-playlist_id={@id}
+    >
+      {@name}
+    </button>
+    """
+  end
+
+  defp handle_playlist_join(room_code, user_id, game_mode, playlist_id) do
+    case Pling.Playlists.MusicLibrary.get_or_fetch_playlist(playlist_id) do
+      {:ok, :first_track_saved, playlist} ->
+        {:ok, _state} = Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
+        {:ok, state} = Rooms.set_playlist(room_code, playlist_id)
+        state
+
+      {:ok, _, playlist} ->
+        Rooms.join_room(room_code, user_id, self(), game_mode, playlist)
+
+      {:error, reason} ->
+        Logger.error("Failed to load playlist in UI: #{inspect(reason)}")
+        Rooms.join_room(room_code, user_id, self(), game_mode)
+    end
   end
 end
