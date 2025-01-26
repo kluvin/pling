@@ -44,6 +44,7 @@ defmodule Pling.MixProject do
       {:oauth2, "~> 2.1"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
+      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
       {:heroicons,
        github: "tailwindlabs/heroicons",
        tag: "v2.1.1",

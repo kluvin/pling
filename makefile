@@ -26,6 +26,13 @@ seed:
 reset_db:
 	@mix ecto.reset
 
+test:
+	@mix test
+
+test.watch:
+	@mix test.watch
+
+
 # ops commands for prod. should be automated.
 # some of this toruble is due to db lock conflicts with duckdb
 prod_seed:
