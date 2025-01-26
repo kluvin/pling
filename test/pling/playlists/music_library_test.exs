@@ -22,9 +22,6 @@ defmodule Pling.Playlists.MusicLibraryTest do
     test "fetches new playlist from Spotify when it doesn't exist" do
       playlist_id = "new_playlist_id"
 
-      # Mock the Spotify.stream_playlist behavior by sending messages directly
-      test_pid = self()
-
       # Mock the Spotify.stream_playlist function
       :meck.new(Pling.Services.Spotify, [:passthrough])
 

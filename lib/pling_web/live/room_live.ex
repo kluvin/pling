@@ -398,9 +398,7 @@ defmodule PlingWeb.RoomLive do
   defp playlist_grid(
          %{
            selection: selection,
-           playlists: playlists,
-           game_mode: game_mode,
-           room_code: room_code
+           playlists: playlists
          } = assigns
        ) do
     playlists_with_active =
