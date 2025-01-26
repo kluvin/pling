@@ -16,7 +16,7 @@
     leader?={@leader?}
   />
   <%= if @leader? do %>
-    <.button phx-click="update_track" class="ml-auto">
+    <.button phx-click="update_track" class="ml-auto" disabled={@playing?}>
       {gettext("Next Track")}
     </.button>
   <% end %>
