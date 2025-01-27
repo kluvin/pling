@@ -25,7 +25,7 @@ defmodule Pling.Rooms.RoomState do
       recent_plings: [],
       selection: %{
         playlist: @default_playlist_id,
-        track: nil
+        queue: []
       }
     }
   end
@@ -40,7 +40,10 @@ defmodule Pling.Rooms.RoomState do
       scores: state.scores,
       leader_id: state.leader_id,
       recent_plings: state.recent_plings,
-      selection: state.selection
+      selection: %{
+        playlist: state.selection.playlist,
+        track: List.first(state.selection.queue) || nil
+      }
     }
   end
 

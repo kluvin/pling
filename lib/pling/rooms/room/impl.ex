@@ -13,7 +13,8 @@ defmodule Pling.Rooms.Room.Impl do
     state =
       if playlist do
         updated_playlists = Map.put(playlists, playlist.spotify_id, playlist)
-        track = MusicLibrary.select_track(updated_playlists, playlist.spotify_id)
+        tracks = MusicLibrary.get_tracks(playlist.spotify_id, updated_playlists)
+        track = List.first(tracks) || nil
 
         %{
           initial_state
@@ -42,21 +43,46 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   def update_track(state) do
-    track = select_track(state)
-    %{state | selection: %{playlist: state.selection.playlist, track: track}}
-  end
+    current_selection = state.selection
 
-  defp select_track(%{playlists: playlists} = state) do
-    MusicLibrary.select_track(playlists, state.selection.playlist)
+    {new_track, new_queue} =
+      case current_selection.queue do
+        [next_track | remaining_tracks] ->
+          {next_track, remaining_tracks}
+
+        [] ->
+          tracks =
+            current_selection.playlist
+            |> MusicLibrary.get_tracks(state.playlists)
+            |> shuffle_tracks()
+
+          {hd(tracks), tl(tracks)}
+      end
+
+    %{state | selection: %{
+      playlist: current_selection.playlist,
+      track: new_track,
+      queue: new_queue
+    }}
   end
 
   def set_playlist(state, playlist_id) do
     playlists = MusicLibrary.load_playlists()
 
+    tracks =
+      playlist_id
+      |> MusicLibrary.get_tracks(playlists)
+      |> Enum.shuffle()
+    {initial_track, initial_queue} =
+      {hd(tracks), tl(tracks)}
+
     state
     |> Map.put(:playlists, playlists)
-    |> Map.put(:selection, %{playlist: playlist_id, track: nil})
-    |> update_track()
+    |> Map.put(:selection, %{
+      playlist: playlist_id,
+      track: initial_track,
+      queue: initial_queue
+    })
     |> reset_playback()
   end
 
@@ -142,4 +168,6 @@ defmodule Pling.Rooms.Room.Impl do
       [] -> :error
     end
   end
+
+  defp shuffle_tracks(tracks), do: Enum.shuffle(tracks)
 end
