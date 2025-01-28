@@ -1,6 +1,4 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
 
 /* This file is for your main application CSS */
 
@@ -229,8 +227,6 @@ box-shadow: var(--shadow-elevation-c);
 }
 
   * {
-    @apply border-border !important;
+    border-color: hsl(var(--border)) !important;
   }
 }
-
-body { @apply bg-background text-foreground; }
