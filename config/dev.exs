@@ -83,3 +83,6 @@ config :swoosh, :api_client, false
 # # Set DuckDB path for development
 # config :phoenix_analytics,
 #   duckdb_path: "analytics.db"
+
+# Path to install SaladUI components
+config :salad_ui, components_path: Path.join(File.cwd!(), "lib/pling_web/components")

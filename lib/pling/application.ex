@@ -20,6 +20,7 @@ defmodule Pling.Application do
       # {Pling.Worker, arg},
       # Start to serve requests, typically the last entry
       Pling.Presence,
+      TwMerge.Cache,
       PlingWeb.Endpoint,
       {Registry, keys: :unique, name: Pling.Rooms.ServerRegistry},
       {Registry, keys: :duplicate, name: Pling.Rooms.ClientRegistry},
