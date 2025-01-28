@@ -2,7 +2,6 @@ alias Pling.Repo
 alias Pling.Playlists.{MusicLibrary, Playlist}
 
 playlists = [
-  "6ZSeHvrhmEH4erjxudpULB",
   "4mUy5wCcZi5Nq6azLEM9ik",
   "3wvTJnQoBgxZe99WDF1zcN",
   "4DIYG1WrBI9jRJiul9vmxj",
