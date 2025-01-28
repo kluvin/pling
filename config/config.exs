@@ -20,6 +20,7 @@ config :pling, PlingWeb.Gettext,
 config :pling, PlingWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
+  server: true,
   render_errors: [
     formats: [html: PlingWeb.ErrorHTML, json: PlingWeb.ErrorJSON],
     layout: false
