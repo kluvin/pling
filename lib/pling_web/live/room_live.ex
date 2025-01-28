@@ -440,7 +440,7 @@ defmodule PlingWeb.RoomLive do
     active? = assigns[:active?]
 
     active_class =
-      if active?, do: "bg-brand text-red-50", else: "bg-red-50 text-red-900"
+      if active?, do: "bg-red-600 text-red-50", else: "bg-red-50 text-red-900"
 
     assigns = assign(assigns, :active_class, active_class)
 
