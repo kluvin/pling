@@ -31,15 +31,18 @@ defmodule Pling.Rooms.Room.Impl do
 
   def play(state) do
     state
+    |> Map.put(:timer_ref, cancel_timer(state))
     |> Map.put(:playing?, true)
-    |> Map.put(:countdown, state.spotify_track_duration)
+    |> Map.put(:countdown, 30)
     |> schedule_next_tick()
   end
 
   def pause(state) do
     state
     |> Map.put(:timer_ref, cancel_timer(state))
-    |> reset_playback()
+    |> Map.put(:countdown, 7)
+    |> Map.put(:playing?, false)
+    |> schedule_next_tick()
   end
 
   def update_track(state) do
@@ -64,10 +67,12 @@ defmodule Pling.Rooms.Room.Impl do
       track: new_track,
       queue: new_queue
     }}
+    |> Map.put(:countdown, 30)
   end
 
   def set_playlist(state, playlist_id) do
     playlists = MusicLibrary.load_playlists()
+    playlist = Map.get(playlists, playlist_id)
 
     tracks =
       playlist_id
@@ -79,7 +84,7 @@ defmodule Pling.Rooms.Room.Impl do
     state
     |> Map.put(:playlists, playlists)
     |> Map.put(:selection, %{
-      playlist: playlist_id,
+      playlist: playlist,
       track: initial_track,
       queue: initial_queue
     })
@@ -89,7 +94,7 @@ defmodule Pling.Rooms.Room.Impl do
   def process_tick(state) do
     new_state = tick(state)
 
-    if new_state.playing? do
+    if new_state.countdown && new_state.countdown > 0 do
       schedule_next_tick(new_state)
     else
       %{new_state | timer_ref: nil}
@@ -124,7 +129,6 @@ defmodule Pling.Rooms.Room.Impl do
 
   defp tick(state) do
     case state do
-      %{playing?: false} -> state
       %{countdown: nil} -> state
       %{countdown: 0} -> handle_timeout(state)
       %{countdown: count} -> update_countdown(state, count - 1)
@@ -132,13 +136,16 @@ defmodule Pling.Rooms.Room.Impl do
   end
 
   defp handle_timeout(state) do
-    new_state =
-      state
-      |> update_track()
-      |> Map.put(:countdown, state.spotify_track_duration)
-      |> Map.put(:playing?, false)
+    if state.playing? do
+      new_state =
+        state
+        |> update_track()
+        |> Map.put(:countdown, 30)
 
-    new_state
+      schedule_next_tick(new_state)
+    else
+      %{state | countdown: nil}
+    end
   end
 
   defp update_countdown(state, new_count) do

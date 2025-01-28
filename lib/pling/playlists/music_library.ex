@@ -9,6 +9,7 @@ defmodule Pling.Playlists.MusicLibrary do
   alias Pling.Playlists.{Playlist, Track}
 
   @notification_key :first_track_notified
+  @default_playlist_id "4DIYG1WrBI9jRJiul9vmxj"
 
   @doc """
   Loads all playlists from the database and returns them as a map with spotify_id keys.
@@ -177,4 +178,18 @@ defmodule Pling.Playlists.MusicLibrary do
 
   defp get_first_image_url([%{"url" => url} | _]), do: url
   defp get_first_image_url(_), do: nil
+
+  @doc """
+  Loads the default playlist along with its tracks.
+  """
+  def load_default_playlist do
+    case get_or_fetch_playlist(@default_playlist_id) do
+      {:ok, _, playlist} ->
+        {:ok, playlist}
+
+      {:error, reason} ->
+        Logger.error("Failed to load default playlist: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
 end

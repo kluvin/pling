@@ -188,22 +188,12 @@ defmodule PlingWeb.RoomLive do
     """
   end
 
-  defp playlist_info(%{selection: selection, playlists: playlists} = assigns)
-       when not is_nil(selection) and not is_nil(playlists) do
+  defp playlist_info(%{selection: selection} = assigns) do
     playlist_name =
-      cond do
-        # Get playlist name directly from the playlists map using playlist ID
-        selection.playlist && Map.has_key?(playlists, selection.playlist) ->
-          Map.get(playlists, selection.playlist).name
-
-        # Get playlist name from track's playlist_spotify_id
-        selection.track && Map.has_key?(playlists, selection.track.playlist_spotify_id) ->
-          Map.get(playlists, selection.track.playlist_spotify_id).name
-
-        true ->
-          # Track exists but playlist not found, nothing.
-          nil
-          gettext("Unknown Playlist")
+      if selection.playlist do
+        selection.playlist.name || gettext("Unknown Playlist")
+      else
+        nil
       end
 
     assigns = assign(assigns, :playlist_name, playlist_name)
@@ -217,8 +207,6 @@ defmodule PlingWeb.RoomLive do
     </div>
     """
   end
-
-  defp playlist_info(assigns), do: ~H""
 
   defp user_list(%{users: []} = assigns) do
     ~H"""
@@ -237,8 +225,8 @@ defmodule PlingWeb.RoomLive do
     <span class={["text-slate-900", @is_current_user? && "font-bold"]}>
       {@single_user.user_id}
     </span>
-    {gettext("is in the")}
-    <span class="text-slate-900">{@room_code}</span>{gettext("room")}
+    {gettext("is in")}
+    <span class="text-slate-900">{@room_code}</span>
     """
   end
 
@@ -266,7 +254,7 @@ defmodule PlingWeb.RoomLive do
       </span>
       {if index < length(@other_users_with_current) - 1, do: ", "}
     <% end %>
-    {gettext("in the")}
+    {gettext("is in")}
     <span class="text-slate-900">{@room_code}</span>{gettext("room")}
     """
   end
@@ -452,7 +440,7 @@ defmodule PlingWeb.RoomLive do
     active? = assigns[:active?]
 
     active_class =
-      if active?, do: "bg-indigo-900 text-indigo-50", else: "bg-indigo-50 text-indigo-900"
+      if active?, do: "bg-brand text-red-50", else: "bg-red-50 text-red-900"
 
     assigns = assign(assigns, :active_class, active_class)
 
