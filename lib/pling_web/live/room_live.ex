@@ -395,7 +395,7 @@ defmodule PlingWeb.RoomLive do
         |> Map.values()
         |> Enum.filter(& &1.official)
         |> Enum.map(fn playlist ->
-          Map.put(playlist, :active?, selection.playlist == playlist.spotify_id)
+          Map.put(playlist, :active?, selection.playlist.spotify_id == playlist.spotify_id)
         end)
       else
         []
